@@ -1,6 +1,6 @@
 Author: Johan Hanssen Seferidis
 Created: 2011-08-12
-Updated: 2011-11-01
+Updated: 2011-11-07
 
 
 
@@ -20,11 +20,11 @@ Then run the executable like this:
 
 ====================================== Usage  ======================================
 
-1. Make a thread pool:                       thpool_t* threadpool;
+1. Make a thread pool:                       thpool_t* thpool;
 2. Initialise the thread pool with number
-   of threads(workers) you want:             threadpool=thpool_init(4);
-3. Add work to the pool:                     thpool_add_work((void*)doSth, (void*)arg);
-4. Destroy pool:                             thpool_destroy(threadpool);
+   of threads(workers) you want:             thpool=thpool_init(4);
+3. Add work to the pool:                     thpool_add_work(thpool, (void*)doSth, (void*)arg);
+4. Destroy pool:                             thpool_destroy(thpool);
 
 
 
@@ -56,21 +56,21 @@ DESCRIPTION
 
 
 NAME
-     thpool_add_work(void *(*function_p)(void*), void* arg_p);
+     thpool_add_work(thpool_t* thpool, void *(*function_p)(void*), void* arg_p);
 
 SYNOPSIS
   
      #include <thpool.h>
 
-     int thpool_add_work(void *(*function_p)(void*), void* arg_p);
+     int thpool_add_work(thpool_t* thpool, void *(*function_p)(void*), void* arg_p);
 
 DESCRIPTION
 
-     Adds work to the thread pool. Work is concidered an individual function with an argument. First argument is pointer to a function and second argument is a pointer to an argument. To pass multiple arguments just use a struct. If the function you want to pass doesn't fit the parameters of this prototype, use casting. If your function or argument doesn't fit the parameters' and return's value type then you should use casting to avoid warnings from the compiler.
+     Adds work to the thread pool. Work is concidered an individual function with an argument. First argument is a pointer to the pool itself. The second argument is a pointer to a function and third argument is a pointer to an argument. To pass multiple arguments just use a struct. If the function you want to pass doesn't fit the parameters of this prototype, use casting. If your function or argument doesn't fit the parameters' and return's value type then you should use casting to avoid warnings from the compiler.
 
      Example:
-     void printSth(char* str);                      //Prints a text on the screen
-     thpool_add_work((void*)printSth, (void*)str);  //Pay attention to the casting
+     void printSth(char* str);                              //Prints a text on the screen
+     thpool_add_work(thpool, (void*)printSth, (void*)str);  //Pay attention to the casting
 
 
 -----------------------------------------------------------------------------------
