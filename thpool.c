@@ -137,7 +137,9 @@ int thpool_add_work(thpool_t* tp_p, void *(*function_p)(void*), void* arg_p){
 	newJob->arg=arg_p;
 	
 	/* add job to queue */
+	pthread_mutex_lock(&mutex);                  /* LOCK */
 	thpool_jobqueue_add(tp_p, newJob);
+	pthread_mutex_unlock(&mutex);                /* UNLOCK */
 	
 	return 0;
 }
