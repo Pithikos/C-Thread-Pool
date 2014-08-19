@@ -6,6 +6,7 @@ Updated: 2011-11-07
 
 
 =================================== Compiling =====================================
+
 The library is not precompiled so you have to compile it with your project. The thread pool
 uses POSIX threads so if you compile with gcc you have to use the flag -pthread like this:
 
