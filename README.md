@@ -1,39 +1,49 @@
-Author: Johan Hanssen Seferidis
+````
+Author:  Johan Hanssen Seferidis
 Created: 2011-08-12
-Updated: 2011-11-07
+````
 
 
-
-
-=================================== Compiling =====================================
+Compiling
+========================================================================
 
 The library is not precompiled so you have to compile it with your project. The thread pool
 uses POSIX threads so if you compile with gcc you have to use the flag -pthread like this:
 
-  gcc main.c thpool.c -pthread -o test
+    gcc main.c thpool.c -pthread -o test
 
 
 Then run the executable like this:
 
-  ./test
+    ./test
+
+
+Usage
+========================================================================
+
+1. Make a thread pool
+
+    thpool_t* thpool;
+    
+2. Initialise the thread pool with number of threads(workers) you want
+
+    thpool=thpool_init(4);
+    
+3. Add work to the pool
+
+    thpool_add_work(thpool, (void*)doSth, (void*)arg);
+    
+4. Destroy pool
+
+    thpool_destroy(thpool);
 
 
 
-====================================== Usage  ======================================
 
-1. Make a thread pool:                       thpool_t* thpool;
-2. Initialise the thread pool with number
-   of threads(workers) you want:             thpool=thpool_init(4);
-3. Add work to the pool:                     thpool_add_work(thpool, (void*)doSth, (void*)arg);
-4. Destroy pool:                             thpool_destroy(thpool);
+Threadpool Interface
+========================================================================
 
-
-
-
-
-=============================== Threadpool Interface ===============================
-
-
+````
 NAME
      thpool_t* thpool_init(int num_of_threads);
 
@@ -50,12 +60,12 @@ DESCRIPTION
      Example:
      thpool_t* myThreadpool;                 //First we declare a threadpool
      myThreadpool=thpool_init(4);            //then we initialise it to 4 threads
-
+````
 
 -----------------------------------------------------------------------------------
 
 
-
+```
 NAME
      thpool_add_work(thpool_t* thpool, void *(*function_p)(void*), void* arg_p);
 
@@ -72,11 +82,11 @@ DESCRIPTION
      Example:
      void printSth(char* str);                              //Prints a text on the screen
      thpool_add_work(thpool, (void*)printSth, (void*)str);  //Pay attention to the casting
-
+````
 
 -----------------------------------------------------------------------------------
 
-
+````
 NAME
      void thpool_destroy(thpool_t* tp_p);
 
@@ -92,3 +102,4 @@ DESCRIPTION
 
      Example:
      thpool_destroy(threadpool_p);           //threadpool_p being a pointer to a thpool_t
+````
