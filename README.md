@@ -21,22 +21,10 @@ Then run the executable like this:
 Usage
 ========================================================================
 
-1. Make a thread pool
-   `thpool_t* thpool;`
-    
-2. Initialise the thread pool with number of threads(workers) you want
-
-    thpool=thpool_init(4);
-    
-3. Add work to the pool
-
-    thpool_add_work(thpool, (void*)doSth, (void*)arg);
-    
-4. Destroy pool
-
-    thpool_destroy(thpool);
-
-
+1. Make a thread pool: `thpool_t* thpool;`
+2. Initialise the thread pool with number of threads(workers) you want: `thpool=thpool_init(4);`
+3. Add work to the pool: `thpool_add_work(thpool, (void*)doSth, (void*)arg);`
+4. Destroy pool: `thpool_destroy(thpool);`
 
 
 Threadpool Interface
