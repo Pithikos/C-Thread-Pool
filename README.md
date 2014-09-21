@@ -22,8 +22,7 @@ Usage
 ========================================================================
 
 1. Make a thread pool
-
-    thpool_t* thpool;
+   `thpool_t* thpool;`
     
 2. Initialise the thread pool with number of threads(workers) you want
 
