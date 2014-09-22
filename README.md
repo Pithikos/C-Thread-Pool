@@ -42,7 +42,10 @@ SYNOPSIS
 
 DESCRIPTION
 
-     Initialises the threadpool. On success a threadpool structure is returned. Otherwise if memory could not be allocated NULL is returned. The argument which is the number of threads in the threadpool should be a thoughfull choice. A common suggestion is to use as many threads as the ones supported by your cpu.
+     Initialises the threadpool. On success a threadpool structure is returned. Otherwise if
+     memory could not be allocated NULL is returned. The argument which is the number of
+     threads in the threadpool should be a thoughfull choice. A common suggestion is to
+     use as many threads as the ones supported by your cpu.
 
      Example:
      thpool_t* myThreadpool;                 //First we declare a threadpool
@@ -64,7 +67,12 @@ SYNOPSIS
 
 DESCRIPTION
 
-     Adds work to the thread pool. Work is concidered an individual function with an argument. First argument is a pointer to the pool itself. The second argument is a pointer to a function and third argument is a pointer to an argument. To pass multiple arguments just use a struct. If the function you want to pass doesn't fit the parameters of this prototype, use casting. If your function or argument doesn't fit the parameters' and return's value type then you should use casting to avoid warnings from the compiler.
+     Adds work to the thread pool. Work is concidered an individual function with an argument.
+     First argument is a pointer to the pool itself. The second argument is a pointer to a
+     function and third argument is a pointer to an argument. To pass multiple arguments just
+     use a struct. If the function you want to pass doesn't fit the parameters of this prototype,
+     use casting. If your function or argument doesn't fit the parameters' and return's value type
+     then you should use casting to avoid warnings from the compiler.
 
      Example:
      void printSth(char* str);                              //Prints a text on the screen
@@ -85,7 +93,9 @@ SYNOPSIS
 
 DESCRIPTION
 
-     This function will destroy a threadpool. If some threads are working in the pool then thpool_destroy() will wait for them to finish. Once they are finished the threadpool is deallocated releasing all resources back to the system.
+     This function will destroy a threadpool. If some threads are working in the pool then
+     thpool_destroy() will wait for them to finish. Once they are finished the threadpool is
+     deallocated releasing all resources back to the system.
 
      Example:
      thpool_destroy(threadpool_p);           //threadpool_p being a pointer to a thpool_t
