@@ -36,16 +36,14 @@
 static int thpool_keepalive=1;
 
 /* Create mutex variable */
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; /* used to serialize queue access */
-
-
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; /* used to serialize queue access */
 
 
 /* Initialise thread pool */
 thpool_t* thpool_init(int threadsN){
 	thpool_t* tp_p;
 	
-	if (!threadsN || threadsN<1) threadsN=1;
+	if (threadsN<0) threadsN=0;
 	
 	/* Make new thread pool */
 	tp_p=(thpool_t*)malloc(sizeof(thpool_t));                              /* MALLOC thread pool */
@@ -61,20 +59,20 @@ thpool_t* thpool_init(int threadsN){
 	tp_p->threadsN=threadsN;
 	
 	/* Initialise the job queue */
-	if (thpool_jobqueue_init(tp_p)==-1){
+	if (jobqueue_init(tp_p)==-1){
 		fprintf(stderr, "thpool_init(): Could not allocate memory for job queue\n");
 		return NULL;
 	}
 	
 	/* Initialise semaphore*/
-	tp_p->jobqueue->queueSem=(sem_t*)malloc(sizeof(sem_t));                 /* MALLOC job queue semaphore */
-	sem_init(tp_p->jobqueue->queueSem, 0, 0); /* no shared, initial value */
+	tp_p->queued_jobsN=(sem_t*)malloc(sizeof(sem_t));  /* MALLOC */
+	sem_init(tp_p->queued_jobsN, 0, 0);                /* no shared, initial value */
 	
 	/* Make threads in pool */
 	int t;
 	for (t=0; t<threadsN; t++){
 		printf("Created thread %d in pool \n", t);
-		pthread_create(&(tp_p->threads[t]), NULL, (void *)thpool_thread_do, (void *)tp_p); /* MALLOCS INSIDE PTHREAD HERE */
+		pthread_create(&(tp_p->threads[t]), NULL, (void *)thpool_thread_do, (void *)tp_p);
 	}
 	
 	return tp_p;
@@ -87,9 +85,11 @@ thpool_t* thpool_init(int threadsN){
  * the thpool is to be killed. In that manner we try to BYPASS sem_wait and end each thread. */
 void thpool_thread_do(thpool_t* tp_p){
 
+   sleep(1);
+
 	while(thpool_keepalive){
 		
-		if (sem_wait(tp_p->jobqueue->queueSem)) {/* WAITING until there is work in the queue */
+		if (sem_wait(tp_p->queued_jobsN)) {/* WAITING until there is work in the queue */
 			perror("thpool_thread_do(): Waiting for semaphore");
 			exit(1);
 		}
@@ -99,19 +99,19 @@ void thpool_thread_do(thpool_t* tp_p){
 			/* Read job from queue and execute it */
 			void*(*func_buff)(void* arg);
 			void*  arg_buff;
-			thpool_job_t* job_p;
+			job_t* job_p;
 	
 			pthread_mutex_lock(&mutex);                  /* LOCK */
-			
-			job_p = thpool_jobqueue_peek(tp_p);
-			func_buff=job_p->function;
-			arg_buff =job_p->arg;
-			thpool_jobqueue_removelast(tp_p);
-			
-			pthread_mutex_unlock(&mutex);                /* UNLOCK */
-			
-			func_buff(arg_buff);               			 /* run function */
-			free(job_p);                                                       /* DEALLOC job */
+         puts("pulling job");
+			job_p = jobqueue_pull(tp_p);
+         pthread_mutex_unlock(&mutex);                /* UNLOCK */
+
+         if (job_p) {
+            func_buff=job_p->function;
+            arg_buff =job_p->arg;
+            func_buff(arg_buff);               		   /* run function */
+            free(job_p);                              /* DEALLOC job */
+         }
 		}
 		else
 		{
@@ -124,9 +124,9 @@ void thpool_thread_do(thpool_t* tp_p){
 
 /* Add work to the thread pool */
 int thpool_add_work(thpool_t* tp_p, void *(*function_p)(void*), void* arg_p){
-	thpool_job_t* newJob;
+	job_t* newJob;
 	
-	newJob=(thpool_job_t*)malloc(sizeof(thpool_job_t));                        /* MALLOC job */
+	newJob=(job_t*)malloc(sizeof(job_t));  /* MALLOC job */
 	if (newJob==NULL){
 		fprintf(stderr, "thpool_add_work(): Could not allocate memory for new job\n");
 		exit(1);
@@ -138,7 +138,9 @@ int thpool_add_work(thpool_t* tp_p, void *(*function_p)(void*), void* arg_p){
 	
 	/* add job to queue */
 	pthread_mutex_lock(&mutex);                  /* LOCK */
-	thpool_jobqueue_add(tp_p, newJob);
+	jobqueue_push(tp_p, newJob);
+   sem_post(tp_p->queued_jobsN);
+   printf("pushed job. queue len: %d\n", jobqueue_len(tp_p));
 	pthread_mutex_unlock(&mutex);                /* UNLOCK */
 	
 	return 0;
@@ -154,13 +156,13 @@ void thpool_destroy(thpool_t* tp_p){
 
 	/* Awake idle threads waiting at semaphore */
 	for (t=0; t<(tp_p->threadsN); t++){
-		if (sem_post(tp_p->jobqueue->queueSem)){
+		if (sem_post(tp_p->queued_jobsN)){
 			fprintf(stderr, "thpool_destroy(): Could not bypass sem_wait()\n");
 		}
 	}
 
 	/* Kill semaphore */
-	if (sem_destroy(tp_p->jobqueue->queueSem)!=0){
+	if (sem_destroy(tp_p->queued_jobsN)!=0){
 		fprintf(stderr, "thpool_destroy(): Could not destroy semaphore\n");
 	}
 	
@@ -169,11 +171,11 @@ void thpool_destroy(thpool_t* tp_p){
 		pthread_join(tp_p->threads[t], NULL);
 	}
 	
-	thpool_jobqueue_empty(tp_p);
+	jobqueue_empty(tp_p);
 	
 	/* Dealloc */
 	free(tp_p->threads);                                                   /* DEALLOC threads             */
-	free(tp_p->jobqueue->queueSem);                                        /* DEALLOC job queue semaphore */
+	free(tp_p->queued_jobsN);                                        /* DEALLOC job queue semaphore */
 	free(tp_p->jobqueue);                                                  /* DEALLOC job queue           */
 	free(tp_p);                                                            /* DEALLOC thread pool         */
 }
@@ -185,95 +187,85 @@ void thpool_destroy(thpool_t* tp_p){
 
 
 /* Initialise queue */
-int thpool_jobqueue_init(thpool_t* tp_p){
+int jobqueue_init(thpool_t* tp_p){
 	tp_p->jobqueue=(thpool_jobqueue*)malloc(sizeof(thpool_jobqueue));      /* MALLOC job queue */
 	if (tp_p->jobqueue==NULL) return -1;
 	tp_p->jobqueue->tail=NULL;
 	tp_p->jobqueue->head=NULL;
-	tp_p->jobqueue->jobsN=0;
 	return 0;
+}
+
+
+/* How many jobs currently in queue */
+int jobqueue_len(thpool_t* tp_p){
+   int val;
+   sem_getvalue(tp_p->queued_jobsN, &val);
+   return val;
 }
 
 
 /* Add job to queue */
-void thpool_jobqueue_add(thpool_t* tp_p, thpool_job_t* newjob_p){ /* remember that job prev and next point to NULL */
+void jobqueue_push(thpool_t* tp_p, job_t* newjob_p){ /* remember that job prev and next point to NULL */
 
-	newjob_p->next=NULL;
-	newjob_p->prev=NULL;
-	
-	thpool_job_t *oldFirstJob;
-	oldFirstJob = tp_p->jobqueue->head;
-	
-	/* fix jobs' pointers */
-	switch(tp_p->jobqueue->jobsN){
-		
-		case 0:     /* if there are no jobs in queue */
+   newjob_p->next=NULL;
+
+   //printf("jobqueue_push() ---> sem_jobs: %d\n", jobqueue_len(tp_p));
+	switch(jobqueue_len(tp_p)){
+
+		case 0:  /* if there are no jobs in queue */
 					tp_p->jobqueue->tail=newjob_p;
 					tp_p->jobqueue->head=newjob_p;
 					break;
-		
-		default: 	/* if there are already jobs in queue */
-					oldFirstJob->prev=newjob_p;
-					newjob_p->next=oldFirstJob;
-					tp_p->jobqueue->head=newjob_p;
+
+		default: /* if there are already jobs in queue */
+               tp_p->jobqueue->tail->next=newjob_p;
+               newjob_p->prev=tp_p->jobqueue->tail;
+               tp_p->jobqueue->tail=newjob_p;
 
 	}
-
-	(tp_p->jobqueue->jobsN)++;     /* increment amount of jobs in queue */
-	sem_post(tp_p->jobqueue->queueSem);
-	
-	int sval;
-	sem_getvalue(tp_p->jobqueue->queueSem, &sval);
-}
-
-
-/* Remove job from queue */
-int thpool_jobqueue_removelast(thpool_t* tp_p){
-	thpool_job_t *oldLastJob;
-	oldLastJob = tp_p->jobqueue->tail;
-	
-	/* fix jobs' pointers */
-	switch(tp_p->jobqueue->jobsN){
-		
-		case 0:     /* if there are no jobs in queue */
-					return -1;
-					break;
-		
-		case 1:     /* if there is only one job in queue */
-					tp_p->jobqueue->tail=NULL;
-					tp_p->jobqueue->head=NULL;
-					break;
-					
-		default: 	/* if there are more than one jobs in queue */
-					oldLastJob->prev->next=NULL;               /* the almost last item */
-					tp_p->jobqueue->tail=oldLastJob->prev;
-					
-	}
-	
-	(tp_p->jobqueue->jobsN)--;
-	
-	int sval;
-	sem_getvalue(tp_p->jobqueue->queueSem, &sval);
-	return 0;
 }
 
 
 /* Get first element from queue */
-thpool_job_t* thpool_jobqueue_peek(thpool_t* tp_p){
-	return tp_p->jobqueue->tail;
+job_t* jobqueue_pull(thpool_t* tp_p){
+   
+   /* get first job */
+   job_t* job_p;
+   job_p = tp_p->jobqueue->head;
+
+   printf("jobqueue_pull():   queue length: %d\n", jobqueue_len(tp_p));
+
+	/* remove job from queue */
+	switch(jobqueue_len(tp_p)){
+		
+		case 0:  /* if there are no jobs in queue */
+					return NULL;
+					break;
+		
+		case 1:  /* if there is only one job in queue */
+					tp_p->jobqueue->tail=NULL;
+					tp_p->jobqueue->head=NULL;
+					break;
+					
+		default: /* if there are more than one jobs in queue */
+               tp_p->jobqueue->head=job_p->next;
+               job_p->next->prev=tp_p->jobqueue->head;
+	}
+
+	return job_p;
 }
 
+
 /* Remove and deallocate all jobs in queue */
-void thpool_jobqueue_empty(thpool_t* tp_p){
+void jobqueue_empty(thpool_t* tp_p){
 	
-	thpool_job_t* curjob;
+	job_t* curjob;
 	curjob=tp_p->jobqueue->tail;
 	
-	while(tp_p->jobqueue->jobsN){
+	while(jobqueue_len(tp_p)){
 		tp_p->jobqueue->tail=curjob->prev;
 		free(curjob);
 		curjob=tp_p->jobqueue->tail;
-		tp_p->jobqueue->jobsN--;
 	}
 	
 	/* Fix head and tail */

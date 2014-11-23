@@ -76,28 +76,27 @@
 
 
 /* Individual job */
-typedef struct thpool_job_t{
-	void*  (*function)(void* arg);                     /**< function pointer         */
-	void*                     arg;                     /**< function's argument      */
-	struct thpool_job_t*     next;                     /**< pointer to next job      */
-	struct thpool_job_t*     prev;                     /**< pointer to previous job  */
-}thpool_job_t;
+typedef struct job_t{
+	void*  (*function)(void* arg);       /**< function pointer         */
+	void*          arg;                  /**< function's argument      */
+	struct job_t*  next;                 /**< pointer to next job      */
+	struct job_t*  prev;                 /**< pointer to previous job  */
+}job_t;
 
 
 /* Job queue as doubly linked list */
 typedef struct thpool_jobqueue{
-	thpool_job_t *head;                                /**< pointer to head of queue */
-	thpool_job_t *tail;                                /**< pointer to tail of queue */
-	int           jobsN;                               /**< amount of jobs in queue  */
-	sem_t        *queueSem;                            /**< semaphore(this is probably just holding the same as jobsN) */
+	job_t *head;                         /**< pointer to head of queue */
+	job_t *tail;                         /**< pointer to tail of queue */
 }thpool_jobqueue;
 
 
 /* The threadpool */
 typedef struct thpool_t{
-	pthread_t*       threads;                          /**< pointer to threads' ID   */
-	int              threadsN;                         /**< amount of threads        */
-	thpool_jobqueue* jobqueue;                         /**< pointer to the job queue */
+	pthread_t*       threads;            /**< pointer to threads' ID   */
+	int              threadsN;           /**< amount of threads        */
+	thpool_jobqueue* jobqueue;           /**< pointer to the job queue */
+   sem_t *queued_jobsN;                 /**< number of jobs in queue  */
 }thpool_t;
 
 
@@ -177,34 +176,36 @@ void thpool_destroy(thpool_t* tp_p);
  * @return 0 on success,
  *        -1 on memory allocation error
  */
-int thpool_jobqueue_init(thpool_t* tp_p);
+int jobqueue_init(thpool_t* tp_p);
 
 
 /**
  * @brief Add job to queue
  * 
  * A new job will be added to the queue. The new job MUST be allocated
- * before passed to this function or else other functions like thpool_jobqueue_empty()
+ * before passed to this function or else other functions like jobqueue_empty()
  * will be broken.
  * 
  * @param pointer to threadpool
  * @param pointer to the new job(MUST BE ALLOCATED)
  * @return nothing 
  */
-void thpool_jobqueue_add(thpool_t* tp_p, thpool_job_t* newjob_p);
+void jobqueue_push(thpool_t* tp_p, job_t* newjob_p);
+
 
 
 /**
- * @brief Remove last job from queue. 
+ * @brief Get first job from queue(removes it from queue)
  * 
  * This does not free allocated memory so be sure to have peeked() \n
  * before invoking this as else there will result lost memory pointers.
  * 
  * @param  pointer to threadpool
- * @return 0 on success,
- *         -1 if queue is empty
+ * @return point to job on success,
+ *         NULL if there is no job in queue
  */
-int thpool_jobqueue_removelast(thpool_t* tp_p);
+job_t* jobqueue_pull(thpool_t* tp_p);
+
 
 
 /** 
@@ -217,7 +218,7 @@ int thpool_jobqueue_removelast(thpool_t* tp_p);
  * @return job a pointer to the last job in queue,
  *         a pointer to NULL if the queue is empty
  */
-thpool_job_t* thpool_jobqueue_peek(thpool_t* tp_p);
+job_t* thpool_jobqueue_peek(thpool_t* tp_p);
 
 
 /**
@@ -229,7 +230,7 @@ thpool_job_t* thpool_jobqueue_peek(thpool_t* tp_p);
  * 
  * @param pointer to threadpool structure
  * */
-void thpool_jobqueue_empty(thpool_t* tp_p);
+void jobqueue_empty(thpool_t* tp_p);
 
 
 #endif
