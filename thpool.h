@@ -27,12 +27,12 @@
  * xN           = x can be any string. N stands for amount
  * 
  * */
-                  
+
 /*              _______________________________________________________        
  *             /                                                       \
  *             |   JOB QUEUE        | job1 | job2 | job3 | job4 | ..   |
  *             |                                                       |
- *             |   threadpool      | thread1 | thread2 | ..           |
+ *             |   threadpool      | thread1 | thread2 | ..            |
  *             \_______________________________________________________/
  * 
  *    Description:       Jobs are added to the job queue. Once a thread in the pool
@@ -192,7 +192,6 @@ int jobqueue_init(thpool_t* tp_p);
 void jobqueue_push(thpool_t* tp_p, job_t* newjob_p);
 
 
-
 /**
  * @brief Get first job from queue(removes it from queue)
  * 
@@ -204,7 +203,6 @@ void jobqueue_push(thpool_t* tp_p, job_t* newjob_p);
  *         NULL if there is no job in queue
  */
 job_t* jobqueue_pull(thpool_t* tp_p);
-
 
 
 /** 
