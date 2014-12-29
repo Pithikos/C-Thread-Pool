@@ -29,7 +29,7 @@
 #include "thpool.h"      /* here you can also find the interface to each function */
 
 
-static int thpool_keepalive=1;
+static int thpool_keepalive = 1;
 
 /* Create mutex variable */
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; /* used to serialize queue access */
@@ -81,33 +81,36 @@ thpool_t* thpool_init(int threadsN){
  * the thpool is to be killed. In that manner we try to BYPASS sem_wait and end each thread. */
 void thpool_thread_do(thpool_t* tp_p){
 
-   sleep(1);
-
 	while(thpool_keepalive){
-		
-		if (sem_wait(tp_p->queued_jobsN)) {/* WAITING until there is work in the queue */
+
+		printf("LEN: %d jobs in queue\n", jobqueue_len(tp_p));
+
+		/* WAITING until there is work in the queue.
+		 * Notice that sem_wait will decrement the jobqueue by 1 */
+		if (sem_wait(tp_p->queued_jobsN)) {
 			perror("thpool_thread_do(): Waiting for semaphore");
 			exit(1);
 		}
 
 		if (thpool_keepalive){
-			
+
 			/* Read job from queue and execute it */
 			void*(*func_buff)(void* arg);
 			void*  arg_buff;
 			job_t* job_p;
 	
 			pthread_mutex_lock(&mutex);                  /* LOCK */
-         puts("pulling job");
+            puts("pulling job");
 			job_p = jobqueue_pull(tp_p);
-         pthread_mutex_unlock(&mutex);                /* UNLOCK */
+			pthread_mutex_unlock(&mutex);                /* UNLOCK */
 
-         if (job_p) {
-            func_buff=job_p->function;
-            arg_buff =job_p->arg;
-            func_buff(arg_buff);               		   /* run function */
-            free(job_p);                              /* DEALLOC job */
-         }
+			if (job_p) {
+				puts("WILL RUN THE JOB NOW");
+				func_buff=job_p->function;
+				arg_buff =job_p->arg;
+				func_buff(arg_buff);               		   /* run function */
+				free(job_p);                              /* DEALLOC job */
+			}
 		}
 		else
 		{
@@ -133,11 +136,9 @@ int thpool_add_work(thpool_t* tp_p, void *(*function_p)(void*), void* arg_p){
 	newJob->arg=arg_p;
 	
 	/* add job to queue */
-	pthread_mutex_lock(&mutex);                  /* LOCK */
 	jobqueue_push(tp_p, newJob);
-   sem_post(tp_p->queued_jobsN);
-   printf("pushed job. queue len: %d\n", jobqueue_len(tp_p));
-	pthread_mutex_unlock(&mutex);                /* UNLOCK */
+	sem_post(tp_p->queued_jobsN);
+	printf("pushed job. queue len: %d\n", jobqueue_len(tp_p));
 	
 	return 0;
 }
@@ -171,7 +172,7 @@ void thpool_destroy(thpool_t* tp_p){
 	
 	/* Dealloc */
 	free(tp_p->threads);                                                   /* DEALLOC threads             */
-	free(tp_p->queued_jobsN);                                        /* DEALLOC job queue semaphore */
+	free(tp_p->queued_jobsN);                                              /* DEALLOC job queue semaphore */
 	free(tp_p->jobqueue);                                                  /* DEALLOC job queue           */
 	free(tp_p);                                                            /* DEALLOC thread pool         */
 }
@@ -184,10 +185,12 @@ void thpool_destroy(thpool_t* tp_p){
 
 /* Initialise queue */
 int jobqueue_init(thpool_t* tp_p){
-	tp_p->jobqueue=(thpool_jobqueue*)malloc(sizeof(thpool_jobqueue));      /* MALLOC job queue */
+	tp_p->jobqueue=(thpool_jobqueue*)malloc(sizeof(thpool_jobqueue));      /* MALLOC */
 	if (tp_p->jobqueue==NULL) return -1;
 	tp_p->jobqueue->tail=NULL;
 	tp_p->jobqueue->head=NULL;
+	tp_p->jobqueue->has_jobs=(sem_t*)malloc(sizeof(sem_t));                /* MALLOC */               
+	sem_init(tp_p->jobqueue->has_jobs, 0, 0);
 	return 0;
 }
 
@@ -202,10 +205,10 @@ int jobqueue_len(thpool_t* tp_p){
 
 /* Add job to queue */
 void jobqueue_push(thpool_t* tp_p, job_t* newjob_p){ /* remember that job prev and next point to NULL */
+	pthread_mutex_lock(&mutex);
+	
+	newjob_p->next=NULL;
 
-   newjob_p->next=NULL;
-
-   //printf("jobqueue_push() ---> sem_jobs: %d\n", jobqueue_len(tp_p));
 	switch(jobqueue_len(tp_p)){
 
 		case 0:  /* if there are no jobs in queue */
@@ -217,8 +220,8 @@ void jobqueue_push(thpool_t* tp_p, job_t* newjob_p){ /* remember that job prev a
                tp_p->jobqueue->tail->next=newjob_p;
                newjob_p->prev=tp_p->jobqueue->tail;
                tp_p->jobqueue->tail=newjob_p;
-
 	}
+	pthread_mutex_unlock(&mutex);
 }
 
 
@@ -226,9 +229,9 @@ void jobqueue_push(thpool_t* tp_p, job_t* newjob_p){ /* remember that job prev a
 job_t* jobqueue_pull(thpool_t* tp_p){
    
    /* get first job */
+   pthread_mutex_lock(&mutex);
    job_t* job_p;
    job_p = tp_p->jobqueue->head;
-
    printf("jobqueue_pull():   queue length: %d\n", jobqueue_len(tp_p));
 
 	/* remove job from queue */
@@ -247,7 +250,7 @@ job_t* jobqueue_pull(thpool_t* tp_p){
                tp_p->jobqueue->head=job_p->next;
                job_p->next->prev=tp_p->jobqueue->head;
 	}
-
+	pthread_mutex_unlock(&mutex);
 	return job_p;
 }
 
@@ -267,4 +270,7 @@ void jobqueue_empty(thpool_t* tp_p){
 	/* Fix head and tail */
 	tp_p->jobqueue->tail=NULL;
 	tp_p->jobqueue->head=NULL;
+	
+	/* Deallocs */
+	free(tp_p->jobqueue->has_jobs);
 }

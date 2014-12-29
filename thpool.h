@@ -62,6 +62,7 @@
  *    |___________|         |           |..
  */
 
+
 #ifndef _THPOOL_
 
 #define _THPOOL_
@@ -74,36 +75,30 @@
 /* ========================== STRUCTURES ============================ */
 
 
-/* Individual job */
+/* Job */
 typedef struct job_t{
 	void*  (*function)(void* arg);       /* function pointer         */
 	void*          arg;                  /* function's argument      */
 	struct job_t*  next;                 /* pointer to next job      */
 	struct job_t*  prev;                 /* pointer to previous job  */
-}job_t;
+} job_t;
 
 
-/* Job queue as doubly linked list */
+/* Job queue */
 typedef struct thpool_jobqueue{
 	job_t *head;                         /* pointer to head of queue */
 	job_t *tail;                         /* pointer to tail of queue */
-}thpool_jobqueue;
+	sem_t *has_jobs;                     /* binary semaphore         */
+} thpool_jobqueue;
 
 
-/* The threadpool */
+/* Threadpool */
 typedef struct thpool_t{
 	pthread_t*       threads;            /* pointer to threads' ID   */
 	int              threadsN;           /* amount of threads        */
 	thpool_jobqueue* jobqueue;           /* pointer to the job queue */
-   sem_t *queued_jobsN;                  /* number of jobs in queue  */
-}thpool_t;
-
-
-/* Container for all things that each thread is going to need */
-typedef struct thread_data{                            
-	pthread_mutex_t *mutex_p;
-	thpool_t        *tp_p;
-}thread_data;
+    sem_t *queued_jobsN;                 /* number of jobs in queue  */
+} thpool_t;
 
 
 
@@ -183,7 +178,7 @@ int jobqueue_init(thpool_t* tp_p);
  * 
  * A new job will be added to the queue. The new job MUST be allocated
  * before passed to this function or else other functions like jobqueue_empty()
- * will be broken.
+ * will be broken. NOTICE: This function is thread-safe.
  * 
  * @param pointer to threadpool
  * @param pointer to the new job(MUST BE ALLOCATED)
@@ -197,6 +192,7 @@ void jobqueue_push(thpool_t* tp_p, job_t* newjob_p);
  * 
  * This does not free allocated memory so be sure to have peeked() \n
  * before invoking this as else there will result lost memory pointers.
+ * NOTICE: This function is thread-safe.
  * 
  * @param  pointer to threadpool
  * @return point to job on success,
