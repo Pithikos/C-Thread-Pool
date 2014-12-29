@@ -136,7 +136,7 @@ thpool_t* thpool_init(int threadsN);
  * @param threadpool to use
  * @return nothing
  */
-void thpool_thread_do(thpool_t* tp_p);
+static void thpool_thread_do(thpool_t* tp_p);
 
 
 /**
@@ -154,6 +154,17 @@ void thpool_thread_do(thpool_t* tp_p);
  * @return int
  */
 int thpool_add_work(thpool_t* tp_p, void *(*function_p)(void*), void* arg_p);
+
+
+/**
+ * @brief Wait for all jobs in job queue to finish
+ * 
+ * Will wait for all jobs in the queue to finish. Polling is used for this.
+ * 
+ * @param  threadpool to where the work will be added to
+ * @return void
+ */
+void thpool_wait(thpool_t* tp_p);
 
 
 /**
@@ -177,7 +188,7 @@ void thpool_destroy(thpool_t* tp_p);
  * @return 0 on success,
  *        -1 on memory allocation error
  */
-int jobqueue_init(thpool_t* tp_p);
+static int jobqueue_init(thpool_t* tp_p);
 
 
 /**
@@ -191,7 +202,7 @@ int jobqueue_init(thpool_t* tp_p);
  * @param pointer to the new job(MUST BE ALLOCATED)
  * @return nothing 
  */
-void jobqueue_push(thpool_t* tp_p, job_t* newjob_p);
+static void jobqueue_push(thpool_t* tp_p, job_t* newjob_p);
 
 
 /**
@@ -205,7 +216,7 @@ void jobqueue_push(thpool_t* tp_p, job_t* newjob_p);
  * @return point to job on success,
  *         NULL if there is no job in queue
  */
-job_t* jobqueue_pull(thpool_t* tp_p);
+static job_t* jobqueue_pull(thpool_t* tp_p);
 
 
 /** 
@@ -218,7 +229,7 @@ job_t* jobqueue_pull(thpool_t* tp_p);
  * @return job a pointer to the last job in queue,
  *         a pointer to NULL if the queue is empty
  */
-job_t* thpool_jobqueue_peek(thpool_t* tp_p);
+static job_t* thpool_jobqueue_peek(thpool_t* tp_p);
 
 
 /**
@@ -230,13 +241,16 @@ job_t* thpool_jobqueue_peek(thpool_t* tp_p);
  * 
  * @param pointer to threadpool structure
  * */
-void jobqueue_empty(thpool_t* tp_p);
+static void jobqueue_empty(thpool_t* tp_p);
 
 
-/** Binary semaphore
+/** 
+ * 
+ * Binary semaphore
+ * 
  * */
-void bsem_post(bsem_t *bsem);
-void bsem_wait(bsem_t *bsem);
+static void bsem_post(bsem_t *bsem);
+static void bsem_wait(bsem_t *bsem);
 
 
 #endif
