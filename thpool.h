@@ -10,10 +10,10 @@
  *              this should equal the number of threads supported by your cpu.
  *          
  *              For an example on how to use the threadpool, check the main.c file or just read
- *              the documentation.
+ *              the documentation found in the README.md file.
  * 
- *              In this header file a detailed overview of the functions and the threadpool logical
- *              scheme is present in case tweaking of the pool is needed. 
+ *              In this header file a detailed overview of the functions and the threadpool's logical
+ *              scheme is presented in case you wish to tweak or alter something. 
  * */
 
 /* 
