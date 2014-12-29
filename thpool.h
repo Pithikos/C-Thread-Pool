@@ -1,8 +1,7 @@
 /********************************** 
  * @author      Johan Hanssen Seferidis
  * @date        12/08/2011
- * Last update: 01/11/2011
- * License:     LGPL
+ * License:     MIT
  * 
  **********************************/
 
@@ -72,31 +71,31 @@
 
 
 
-/* ================================= STRUCTURES ================================================ */
+/* ========================== STRUCTURES ============================ */
 
 
 /* Individual job */
 typedef struct job_t{
-	void*  (*function)(void* arg);       /**< function pointer         */
-	void*          arg;                  /**< function's argument      */
-	struct job_t*  next;                 /**< pointer to next job      */
-	struct job_t*  prev;                 /**< pointer to previous job  */
+	void*  (*function)(void* arg);       /* function pointer         */
+	void*          arg;                  /* function's argument      */
+	struct job_t*  next;                 /* pointer to next job      */
+	struct job_t*  prev;                 /* pointer to previous job  */
 }job_t;
 
 
 /* Job queue as doubly linked list */
 typedef struct thpool_jobqueue{
-	job_t *head;                         /**< pointer to head of queue */
-	job_t *tail;                         /**< pointer to tail of queue */
+	job_t *head;                         /* pointer to head of queue */
+	job_t *tail;                         /* pointer to tail of queue */
 }thpool_jobqueue;
 
 
 /* The threadpool */
 typedef struct thpool_t{
-	pthread_t*       threads;            /**< pointer to threads' ID   */
-	int              threadsN;           /**< amount of threads        */
-	thpool_jobqueue* jobqueue;           /**< pointer to the job queue */
-   sem_t *queued_jobsN;                 /**< number of jobs in queue  */
+	pthread_t*       threads;            /* pointer to threads' ID   */
+	int              threadsN;           /* amount of threads        */
+	thpool_jobqueue* jobqueue;           /* pointer to the job queue */
+   sem_t *queued_jobsN;                  /* number of jobs in queue  */
 }thpool_t;
 
 
@@ -108,10 +107,10 @@ typedef struct thread_data{
 
 
 
-/* =========================== FUNCTIONS ================================================ */
+/* =========================== FUNCTIONS ============================ */
 
 
-/* ----------------------- Threadpool specific --------------------------- */
+/* ---------------------- Threadpool specific ----------------------- */
 
 /**
  * @brief  Initialize threadpool
@@ -167,11 +166,11 @@ void thpool_destroy(thpool_t* tp_p);
 
 
 
-/* ------------------------- Queue specific ------------------------------ */
+/* ----------------------- Queue specific --------------------------- */
 
 
 /**
- * @brief Initialize queue
+ * @brief  Initialize queue
  * @param  pointer to threadpool
  * @return 0 on success,
  *        -1 on memory allocation error
