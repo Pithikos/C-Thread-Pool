@@ -98,11 +98,9 @@ void thpool_thread_do(thpool_t* tp_p){
 			void*(*func_buff)(void* arg);
 			void*  arg_buff;
 			job_t* job_p;
-	
-			pthread_mutex_lock(&mutex);                  /* LOCK */
+
             puts("pulling job");
 			job_p = jobqueue_pull(tp_p);
-			pthread_mutex_unlock(&mutex);                /* UNLOCK */
 
 			if (job_p) {
 				puts("WILL RUN THE JOB NOW");
