@@ -1,26 +1,22 @@
 /* ********************************
- * 
- * Author:  Johan Hanssen Seferidis
- * Date:    12/08/2011
- * Update:  01/11/2011
- * License: LGPL
- * 
- * 
+ * Author:       Johan Hanssen Seferidis
+ * Date:         12/08/2011
+ * License:      MIT
+ * Description:  Library providing a threading pool where you can add
+ *               work. For an example on usage refer to the main file
+ *               found in the same package
+ *
  *//** @file thpool.h *//*
  ********************************/
 
-/* Library providing a threading pool where you can add work. For an example on 
- * usage you refer to the main file found in the same package */
-
-/* 
- * Fast reminders:
+/* Fast reminders:
  * 
- * tp           = threadpool 
- * thpool       = threadpool
- * thpool_t     = threadpool type
- * tp_p         = threadpool pointer
- * sem          = semaphore
- * xN           = x can be any string. N stands for amount
+ * tp        = threadpool 
+ * thpool    = threadpool
+ * thpool_t  = threadpool type
+ * tp_p      = threadpool pointer
+ * sem       = semaphore
+ * xN        = x can be any string. N stands for amount
  * 
  * */
 
