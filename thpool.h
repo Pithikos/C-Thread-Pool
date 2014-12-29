@@ -75,31 +75,38 @@
 /* ========================== STRUCTURES ============================ */
 
 
+/* Binary semaphore */
+typedef struct bsem_t {
+    pthread_mutex_t mutex;
+    pthread_cond_t  cond;
+    int v;
+} bsem_t;
+
+
 /* Job */
 typedef struct job_t{
-	void*  (*function)(void* arg);       /* function pointer         */
-	void*          arg;                  /* function's argument      */
-	struct job_t*  next;                 /* pointer to next job      */
-	struct job_t*  prev;                 /* pointer to previous job  */
+	void*  (*function)(void* arg);        /* function pointer         */
+	void*          arg;                   /* function's argument      */
+	struct job_t*  next;                  /* pointer to next job      */
+	struct job_t*  prev;                  /* pointer to previous job  */
 } job_t;
 
 
 /* Job queue */
 typedef struct thpool_jobqueue{
-	job_t *head;                         /* pointer to head of queue */
-	job_t *tail;                         /* pointer to tail of queue */
-	sem_t *has_jobs;                     /* binary semaphore         */
-	int    len;                          /* number of jobs in queue  */
+	job_t  *head;                         /* pointer to head of queue */
+	job_t  *tail;                         /* pointer to tail of queue */
+	bsem_t *has_jobs;                     /* binary semaphore         */
+	int    len;                           /* number of jobs in queue  */
 } thpool_jobqueue;
 
 
 /* Threadpool */
 typedef struct thpool_t{
-	pthread_t*       threads;            /* pointer to threads' ID   */
-	int              threadsN;           /* amount of threads        */
-	thpool_jobqueue* jobqueue;           /* pointer to the job queue */                   
+	pthread_t*       threads;             /* pointer to threads' ID   */
+	int              threadsN;            /* amount of threads        */
+	thpool_jobqueue* jobqueue;            /* pointer to the job queue */                   
 } thpool_t;
-
 
 
 /* =========================== FUNCTIONS ============================ */
@@ -224,6 +231,12 @@ job_t* thpool_jobqueue_peek(thpool_t* tp_p);
  * @param pointer to threadpool structure
  * */
 void jobqueue_empty(thpool_t* tp_p);
+
+
+/** Binary semaphore
+ * */
+void bsem_post(bsem_t *bsem);
+void bsem_wait(bsem_t *bsem);
 
 
 #endif
