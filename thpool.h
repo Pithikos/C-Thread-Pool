@@ -89,6 +89,7 @@ typedef struct thpool_jobqueue{
 	job_t *head;                         /* pointer to head of queue */
 	job_t *tail;                         /* pointer to tail of queue */
 	sem_t *has_jobs;                     /* binary semaphore         */
+	int    len;                          /* number of jobs in queue  */
 } thpool_jobqueue;
 
 
@@ -96,8 +97,7 @@ typedef struct thpool_jobqueue{
 typedef struct thpool_t{
 	pthread_t*       threads;            /* pointer to threads' ID   */
 	int              threadsN;           /* amount of threads        */
-	thpool_jobqueue* jobqueue;           /* pointer to the job queue */
-    sem_t *queued_jobsN;                 /* number of jobs in queue  */
+	thpool_jobqueue* jobqueue;           /* pointer to the job queue */                   
 } thpool_t;
 
 
