@@ -24,7 +24,11 @@ Usage
 1. Make a thread pool: `thpool_t* thpool;`
 2. Initialise the thread pool with number of threads(workers) you want: `thpool=thpool_init(4);`
 3. Add work to the pool: `thpool_add_work(thpool, (void*)doSth, (void*)arg);`
-4. Destroy pool: `thpool_destroy(thpool);`
+
+The workers will start their work automatically as fast as there is new work
+added. If you want to wait for all added work to be finished before continuing
+you can use `thpool_wait(thpool);`. If you want to destroy the pool you can use
+`thpool_destroy(thpool);`.
 
 
 Threadpool Interface
@@ -81,7 +85,32 @@ DESCRIPTION
      thpool_add_work(thpool, (void*)printSth, (void*)str);//Pay attention to the casting
 ````
 
+
 -----------------------------------------------------------------------------------
+
+
+````
+NAME
+     void thpool_wait(thpool_t* tp_p);
+
+SYNOPSIS
+  
+     #include <thpool.h>
+
+     void thpool_wait(thpool_t* tp_p);
+
+DESCRIPTION
+
+     This function will block the main thread until all jobs in the the thread pool
+     has been finished. Polling is being used for this. By default the POLLING_INTERVAL
+     is set to one second.
+
+     Example:
+     thpool_wait(threadpool_p);            //threadpool_p being a pointer to a thpool_t
+````
+
+-----------------------------------------------------------------------------------
+
 
 ````
 NAME

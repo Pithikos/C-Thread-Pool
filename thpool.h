@@ -14,26 +14,16 @@
  * 
  *              In this header file a detailed overview of the functions and the threadpool's logical
  *              scheme is presented in case you wish to tweak or alter something. 
- * */
-
-/* 
- * Fast reminders:
  * 
- * tp           = threadpool 
- * thpool       = threadpool
- * thpool_t     = threadpool type
- * thpool         = threadpool pointer
- * sem          = semaphore
- * xN           = x can be any string. N stands for amount
  * 
- * */
-
-/*              _______________________________________________________        
+ * 
+ *               _______________________________________________________        
  *             /                                                       \
  *             |   JOB QUEUE        | job1 | job2 | job3 | job4 | ..   |
  *             |                                                       |
  *             |   threadpool      | thread1 | thread2 | ..            |
  *             \_______________________________________________________/
+ * 
  * 
  *    Description:       Jobs are added to the job queue. Once a thread in the pool
  *                       is idle, it is assigned with the first job from the queue(and
@@ -106,8 +96,9 @@ typedef struct thpool_t{
 	pthread_mutex_t  rwmutex;            /* used for queue w/r access */
 	pthread_t*       threads;            /* pointer to threads' ID    */
 	int              threadsN;           /* amount of threads         */
-	jobqueue_t* jobqueue;           /* pointer to the job queue  */                   
+	jobqueue_t*      jobqueue;           /* pointer to the job queue  */                   
 } thpool_t;
+
 
 
 /* =========================== FUNCTIONS ============================ */
@@ -162,8 +153,8 @@ int thpool_add_work(thpool_t* thpool, void *(*function_p)(void*), void* arg_p);
  * 
  * Will wait for all jobs in the queue to finish. Polling is used for this.
  * 
- * @param  threadpool to where the work will be added to
- * @return void
+ * @param  threadpool to wait for
+ * @return nothing
  */
 void thpool_wait(thpool_t* thpool);
 
@@ -175,6 +166,7 @@ void thpool_wait(thpool_t* thpool);
  * is called, they will finish what they are doing and then they will get destroyied.
  * 
  * @param threadpool a pointer to the threadpool structure you want to destroy
+ * @return nothing
  */
 void thpool_destroy(thpool_t* thpool);
 
@@ -232,11 +224,9 @@ static void jobqueue_empty(thpool_t* thpool);
 
 
 /** 
- * 
  * Binary semaphore
  * 
  * */
-static void bsem_init(bsem_t *bsem);
 static void bsem_post(bsem_t *bsem);
 static void bsem_wait(bsem_t *bsem);
 
