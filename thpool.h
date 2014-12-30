@@ -62,6 +62,8 @@
 
 
 
+
+
 /* ========================== STRUCTURES ============================ */
 
 
@@ -98,6 +100,8 @@ typedef struct thpool_t{
 	int              threadsN;           /* amount of threads         */
 	jobqueue_t*      jobqueue;           /* pointer to the job queue  */                   
 } thpool_t;
+
+
 
 
 

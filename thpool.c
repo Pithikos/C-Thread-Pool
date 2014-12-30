@@ -18,8 +18,12 @@
 
 
 #include "thpool.h"	 /* here you can also find the interface to each function */
+
 #define POLLING_INTERVAL 1
+
 static int thpool_keepalive = 1;
+
+
 
 
 
@@ -162,8 +166,9 @@ void thpool_destroy(thpool_t* thpool){
 
 
 
-/* ===================== JOB QUEUE OPERATIONS ======================= */
 
+
+/* ===================== JOB QUEUE OPERATIONS ======================= */
 
 
 /* Initialise queue */
@@ -179,7 +184,6 @@ static int jobqueue_init(thpool_t* thpool){
 	thpool->jobqueue->len = 0;
 	return 0;
 }
-
 
 
 /* Add job to queue */
@@ -263,9 +267,12 @@ static void jobqueue_empty(thpool_t* thpool){
 
 
 
+
+
 /* ======================== SYNCHRONISATION ========================= */
 
 
+/* Binary semaphore post */
 static void bsem_post(bsem_t *bsem) {
 	pthread_mutex_lock(&bsem->mutex);
 	bsem->v = 1;
@@ -274,6 +281,7 @@ static void bsem_post(bsem_t *bsem) {
 }
 
 
+/* Binary semaphore wait */
 static void bsem_wait(bsem_t *bsem) {
 	pthread_mutex_lock(&bsem->mutex);
 	while (bsem->v != 1) {
