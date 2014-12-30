@@ -77,35 +77,36 @@
 
 /* Binary semaphore */
 typedef struct bsem_t {
-    pthread_mutex_t mutex;
-    pthread_cond_t  cond;
-    int v;
+	pthread_mutex_t mutex;
+	pthread_cond_t   cond;
+	int v;
 } bsem_t;
 
 
 /* Job */
 typedef struct job_t{
-	void*  (*function)(void* arg);        /* function pointer         */
-	void*          arg;                   /* function's argument      */
-	struct job_t*  next;                  /* pointer to next job      */
-	struct job_t*  prev;                  /* pointer to previous job  */
+	void*  (*function)(void* arg);       /* function pointer          */
+	void*          arg;                  /* function's argument       */
+	struct job_t*  next;                 /* pointer to next job       */
+	struct job_t*  prev;                 /* pointer to previous job   */
 } job_t;
 
 
 /* Job queue */
 typedef struct thpool_jobqueue{
-	job_t  *head;                         /* pointer to head of queue */
-	job_t  *tail;                         /* pointer to tail of queue */
-	bsem_t *has_jobs;                     /* binary semaphore         */
-	int    len;                           /* number of jobs in queue  */
+	job_t  *head;                        /* pointer to head of queue  */
+	job_t  *tail;                        /* pointer to tail of queue  */
+	bsem_t *has_jobs;                    /* binary semaphore          */
+	int    len;                          /* number of jobs in queue   */
 } thpool_jobqueue;
 
 
 /* Threadpool */
 typedef struct thpool_t{
-	pthread_t*       threads;             /* pointer to threads' ID   */
-	int              threadsN;            /* amount of threads        */
-	thpool_jobqueue* jobqueue;            /* pointer to the job queue */                   
+	pthread_mutex_t  rwmutex;            /* used for queue w/r access */
+	pthread_t*       threads;            /* pointer to threads' ID    */
+	int              threadsN;           /* amount of threads         */
+	thpool_jobqueue* jobqueue;           /* pointer to the job queue  */                   
 } thpool_t;
 
 
@@ -196,7 +197,7 @@ static int jobqueue_init(thpool_t* tp_p);
  * 
  * A new job will be added to the queue. The new job MUST be allocated
  * before passed to this function or else other functions like jobqueue_empty()
- * will be broken. NOTICE: This function is thread-safe.
+ * will be broken.
  * 
  * @param pointer to threadpool
  * @param pointer to the new job(MUST BE ALLOCATED)
@@ -210,26 +211,12 @@ static void jobqueue_push(thpool_t* tp_p, job_t* newjob_p);
  * 
  * This does not free allocated memory so be sure to have peeked() \n
  * before invoking this as else there will result lost memory pointers.
- * NOTICE: This function is thread-safe.
  * 
  * @param  pointer to threadpool
  * @return point to job on success,
  *         NULL if there is no job in queue
  */
 static job_t* jobqueue_pull(thpool_t* tp_p);
-
-
-/** 
- * @brief Get last job in queue (tail)
- * 
- * Gets the last job that is inside the queue. This will work even if the queue
- * is empty.
- * 
- * @param  pointer to threadpool structure
- * @return job a pointer to the last job in queue,
- *         a pointer to NULL if the queue is empty
- */
-static job_t* thpool_jobqueue_peek(thpool_t* tp_p);
 
 
 /**
@@ -249,6 +236,7 @@ static void jobqueue_empty(thpool_t* tp_p);
  * Binary semaphore
  * 
  * */
+static void bsem_init(bsem_t *bsem);
 static void bsem_post(bsem_t *bsem);
 static void bsem_wait(bsem_t *bsem);
 
