@@ -22,7 +22,7 @@
  * tp           = threadpool 
  * thpool       = threadpool
  * thpool_t     = threadpool type
- * tp_p         = threadpool pointer
+ * thpool         = threadpool pointer
  * sem          = semaphore
  * xN           = x can be any string. N stands for amount
  * 
@@ -93,12 +93,12 @@ typedef struct job_t{
 
 
 /* Job queue */
-typedef struct thpool_jobqueue{
+typedef struct jobqueue_t{
 	job_t  *head;                        /* pointer to head of queue  */
 	job_t  *tail;                        /* pointer to tail of queue  */
 	bsem_t *has_jobs;                    /* binary semaphore          */
 	int    len;                          /* number of jobs in queue   */
-} thpool_jobqueue;
+} jobqueue_t;
 
 
 /* Threadpool */
@@ -106,7 +106,7 @@ typedef struct thpool_t{
 	pthread_mutex_t  rwmutex;            /* used for queue w/r access */
 	pthread_t*       threads;            /* pointer to threads' ID    */
 	int              threadsN;           /* amount of threads         */
-	thpool_jobqueue* jobqueue;           /* pointer to the job queue  */                   
+	jobqueue_t* jobqueue;           /* pointer to the job queue  */                   
 } thpool_t;
 
 
@@ -137,7 +137,7 @@ thpool_t* thpool_init(int threadsN);
  * @param threadpool to use
  * @return nothing
  */
-static void thpool_thread_do(thpool_t* tp_p);
+static void thpool_thread_do(thpool_t* thpool);
 
 
 /**
@@ -154,7 +154,7 @@ static void thpool_thread_do(thpool_t* tp_p);
  * @param  argument to the above function
  * @return int
  */
-int thpool_add_work(thpool_t* tp_p, void *(*function_p)(void*), void* arg_p);
+int thpool_add_work(thpool_t* thpool, void *(*function_p)(void*), void* arg_p);
 
 
 /**
@@ -165,7 +165,7 @@ int thpool_add_work(thpool_t* tp_p, void *(*function_p)(void*), void* arg_p);
  * @param  threadpool to where the work will be added to
  * @return void
  */
-void thpool_wait(thpool_t* tp_p);
+void thpool_wait(thpool_t* thpool);
 
 
 /**
@@ -176,7 +176,7 @@ void thpool_wait(thpool_t* tp_p);
  * 
  * @param threadpool a pointer to the threadpool structure you want to destroy
  */
-void thpool_destroy(thpool_t* tp_p);
+void thpool_destroy(thpool_t* thpool);
 
 
 
@@ -189,7 +189,7 @@ void thpool_destroy(thpool_t* tp_p);
  * @return 0 on success,
  *        -1 on memory allocation error
  */
-static int jobqueue_init(thpool_t* tp_p);
+static int jobqueue_init(thpool_t* thpool);
 
 
 /**
@@ -203,7 +203,7 @@ static int jobqueue_init(thpool_t* tp_p);
  * @param pointer to the new job(MUST BE ALLOCATED)
  * @return nothing 
  */
-static void jobqueue_push(thpool_t* tp_p, job_t* newjob_p);
+static void jobqueue_push(thpool_t* thpool, job_t* newjob);
 
 
 /**
@@ -216,7 +216,7 @@ static void jobqueue_push(thpool_t* tp_p, job_t* newjob_p);
  * @return point to job on success,
  *         NULL if there is no job in queue
  */
-static job_t* jobqueue_pull(thpool_t* tp_p);
+static job_t* jobqueue_pull(thpool_t* thpool);
 
 
 /**
@@ -228,7 +228,7 @@ static job_t* jobqueue_pull(thpool_t* tp_p);
  * 
  * @param pointer to threadpool structure
  * */
-static void jobqueue_empty(thpool_t* tp_p);
+static void jobqueue_empty(thpool_t* thpool);
 
 
 /** 
