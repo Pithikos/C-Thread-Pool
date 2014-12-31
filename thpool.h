@@ -36,9 +36,9 @@
  * 
  *    thpool______                jobqueue____                      ______ 
  *    |           |               |           |       .----------->|_job0_| Newly added job
- *    |           |               |  head------------'             |_job1_|
+ *    |           |               |  rear  ----------'             |_job1_|
  *    | jobqueue----------------->|           |                    |_job2_|
- *    |           |               |  tail------------.             |__..__| 
+ *    |           |               |  front ----------.             |__..__| 
  *    |___________|               |___________|       '----------->|_jobn_| Job for thread to take
  * 
  * 
@@ -50,6 +50,8 @@
  *    |           |         job1________ 
  *    |  next-------------->|           |
  *    |___________|         |           |..
+ * 
+ * 
  */
 
 
@@ -79,15 +81,15 @@ typedef struct bsem_t {
 typedef struct job_t{
 	void*  (*function)(void* arg);       /* function pointer          */
 	void*          arg;                  /* function's argument       */
-	struct job_t*  next;                 /* pointer to next job       */
+	//struct job_t*  next;                 /* pointer to next job       */
 	struct job_t*  prev;                 /* pointer to previous job   */
 } job_t;
 
 
 /* Job queue */
 typedef struct jobqueue_t{
-	job_t  *head;                        /* pointer to head of queue  */
-	job_t  *tail;                        /* pointer to tail of queue  */
+	job_t  *front;                       /* pointer to front of queue */
+	job_t  *rear;                        /* pointer to rear  of queue */
 	bsem_t *has_jobs;                    /* binary semaphore          */
 	int    len;                          /* number of jobs in queue   */
 } jobqueue_t;
@@ -189,6 +191,14 @@ static int jobqueue_init(thpool_t* thpool);
 
 
 /**
+ * @brief  Clears the queue
+ * @param  pointer to threadpool
+ * @return nothing
+ */
+static void jobqueue_clear(thpool_t* thpool);
+
+
+/**
  * @brief Add job to queue
  * 
  * A new job will be added to the queue. The new job MUST be allocated
@@ -224,7 +234,7 @@ static job_t* jobqueue_pull(thpool_t* thpool);
  * 
  * @param pointer to threadpool structure
  * */
-static void jobqueue_empty(thpool_t* thpool);
+static void jobqueue_destroy(thpool_t* thpool);
 
 
 /** 
