@@ -81,7 +81,6 @@ typedef struct bsem_t {
 typedef struct job_t{
 	void*  (*function)(void* arg);       /* function pointer          */
 	void*          arg;                  /* function's argument       */
-	//struct job_t*  next;                 /* pointer to next job       */
 	struct job_t*  prev;                 /* pointer to previous job   */
 } job_t;
 
@@ -90,9 +89,16 @@ typedef struct job_t{
 typedef struct jobqueue_t{
 	job_t  *front;                       /* pointer to front of queue */
 	job_t  *rear;                        /* pointer to rear  of queue */
-	bsem_t *has_jobs;                    /* binary semaphore          */
+	bsem_t *has_jobs;                    /* flag as binary semaphore  */
 	int    len;                          /* number of jobs in queue   */
 } jobqueue_t;
+
+
+/* Thread */
+typedef struct thread_t{
+	pthread_t *pthread;                 /* pointer to front of queue  */
+	int        idle;                    /* is thread idle or working? */
+} thread_t;
 
 
 /* Threadpool */
@@ -100,7 +106,8 @@ typedef struct thpool_t{
 	pthread_mutex_t  rwmutex;            /* used for queue w/r access */
 	pthread_t*       threads;            /* pointer to threads' ID    */
 	int              threadsN;           /* amount of threads         */
-	jobqueue_t*      jobqueue;           /* pointer to the job queue  */                   
+	bsem_t*          threads_working;    /* flag as binary semaphore  */    
+	jobqueue_t*      jobqueue;           /* pointer to the job queue  */    
 } thpool_t;
 
 

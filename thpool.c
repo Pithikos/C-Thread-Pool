@@ -137,7 +137,7 @@ void thpool_destroy(thpool_t* thpool){
 
 	/* Kill idle threads */
 	double TIMEOUT = 1.0;
-	time_t start,end;
+	time_t start, end;
 	double tpassed;
 	time (&start);
 	while (tpassed < TIMEOUT){
@@ -158,7 +158,7 @@ void thpool_destroy(thpool_t* thpool){
 	pthread_mutex_lock(&thpool->rwmutex);
 	jobqueue_destroy(thpool);
 	pthread_mutex_unlock(&thpool->rwmutex);
-	//free(thpool->jobqueue);
+	free(thpool->jobqueue);
 	
 	
 	/* Dealloc */
@@ -189,22 +189,14 @@ static int jobqueue_init(thpool_t* thpool){
 
 /* Clear queue */
 static void jobqueue_clear(thpool_t* thpool){
-	
-	job_t* curjob;
-	curjob = thpool->jobqueue->front;
-	
-	//printf("JOBS: %d\n", thpool->jobqueue->len);
-	//printf("rear: %p\n", thpool->jobqueue->rear);
-	//printf("curjob prev: %p\n", thpool->jobqueue->rear->prev);
-	//thpool->jobqueue->tail = curjob->prev;
-	//while(thpool->jobqueue->len){
-	//	thpool->jobqueue->tail = curjob->prev;
-	//	free(curjob);
-	//	curjob=thpool->jobqueue->tail;
-	//}
+
+	job_t* job;
+	while(thpool->jobqueue->len){
+		free(jobqueue_pull(thpool));
+	}
 	
 	thpool->jobqueue->front = NULL;
-	thpool->jobqueue->rear = NULL;
+	thpool->jobqueue->rear  = NULL;
 	thpool->jobqueue->has_jobs->v = 0;
 	thpool->jobqueue->len = 0;
 	
@@ -218,12 +210,12 @@ static void jobqueue_push(thpool_t* thpool, job_t* newjob){ /* remember that job
 
 	switch(thpool->jobqueue->len){
 
-		case 0:  /* if there are no jobs in queue */
+		case 0:  /* if no jobs in queue */
 					thpool->jobqueue->front = newjob;
 					thpool->jobqueue->rear  = newjob;
 					break;
 
-		default: /* if there are already jobs in queue */
+		default: /* if jobs in queue */
 					thpool->jobqueue->rear->prev = newjob;
 					thpool->jobqueue->rear = newjob;
 					
@@ -236,28 +228,26 @@ static void jobqueue_push(thpool_t* thpool, job_t* newjob){ /* remember that job
 /* Get first element from queue */
 static job_t* jobqueue_pull(thpool_t* thpool){
 
-	/* get first job */
 	job_t* job;
 	job = thpool->jobqueue->front;
 
-	/* remove job from queue */
 	switch(thpool->jobqueue->len){
 		
-		case 0:  /* if there are no jobs in queue */
+		case 0:  /* if no jobs in queue */
 					return NULL;
 		
-		case 1:  /* if there is only one job in queue */
+		case 1:  /* if one job in queue */
 					thpool->jobqueue->front = NULL;
 					thpool->jobqueue->rear  = NULL;
 					break;
 		
-		default: /* if there are more than two jobs in queue */
+		default: /* if >1 jobs in queue */
 					thpool->jobqueue->front = job->prev;
 					
 	}
 	thpool->jobqueue->len--;
 	
-	// Make sure has_jobs has right value
+	/* Make sure has_jobs has right value */
 	if (thpool->jobqueue->len > 0) {
 		bsem_post(thpool->jobqueue->has_jobs);
 	}
@@ -268,10 +258,7 @@ static job_t* jobqueue_pull(thpool_t* thpool){
 
 /* Remove and deallocate all jobs in queue */
 static void jobqueue_destroy(thpool_t* thpool){
-	
 	jobqueue_clear(thpool);
-	
-	/* Deallocs */
 	free(thpool->jobqueue->has_jobs);
 }
 
