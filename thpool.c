@@ -197,7 +197,7 @@ static void jobqueue_clear(thpool_t* thpool){
 	//printf("rear: %p\n", thpool->jobqueue->rear);
 	//printf("curjob prev: %p\n", thpool->jobqueue->rear->prev);
 	//thpool->jobqueue->tail = curjob->prev;
-	while(thpool->jobqueue->len){
+	//while(thpool->jobqueue->len){
 	//	thpool->jobqueue->tail = curjob->prev;
 	//	free(curjob);
 	//	curjob=thpool->jobqueue->tail;
