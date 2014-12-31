@@ -31,24 +31,17 @@ static int thpool_keepalive = 1;
 /* Initialise thread pool */
 thpool_t* thpool_init(int threadsN){
 
-	if (threadsN < 0) {
+	if (threadsN < 0){
 		threadsN = 0;
 	}
 	
 	/* Make new thread pool */
 	thpool_t* thpool;
-	thpool=(thpool_t*)malloc(sizeof(thpool_t));
+	thpool = (thpool_t*)malloc(sizeof(thpool_t));
 	if (thpool==NULL){
 		fprintf(stderr, "thpool_init(): Could not allocate memory for thread pool\n");
 		return NULL;
 	}
-	thpool->threads=(pthread_t*)malloc(threadsN*sizeof(pthread_t));
-	if (thpool->threads==NULL){
-		fprintf(stderr, "thpool_init(): Could not allocate memory for threads\n");
-		return NULL;
-	}
-	thpool->threadsN=threadsN;
-
 
 	/* Initialise the job queue */
 	if (jobqueue_init(thpool)==-1){
@@ -56,12 +49,22 @@ thpool_t* thpool_init(int threadsN){
 		return NULL;
 	}
 
-
 	/* Make threads in pool */
+	thpool->threads = (thread_t*)malloc(threadsN*sizeof(thread_t));
+	if (thpool->threads==NULL){
+		fprintf(stderr, "thpool_init(): Could not allocate memory for threads\n");
+		return NULL;
+	}
+	thpool->threadsN=threadsN;
+	
 	int n;
 	for (n=0; n<threadsN; n++){
+		//thread_t* th;
+		
+		//th = thpool->threads[n];
+		pthread_create(&(thpool->threads[n].pthread), NULL, (void *)thpool_thread_do, (thpool_t*)thpool);
+		//pthread_create(&(thpool->threads[n]), NULL, (void *)thpool_thread_do, (thpool_t*)thpool);
 		printf("Created thread %d in pool \n", n);
-		pthread_create(&(thpool->threads[n]), NULL, (void *)thpool_thread_do, (thpool_t*)thpool);
 	}
 	
 	return thpool;
@@ -149,7 +152,7 @@ void thpool_destroy(thpool_t* thpool){
 	/* Wait for working threads to finish their work*/
 	int n;
 	for (n=0; n < (thpool->threadsN); n++){
-		pthread_join(thpool->threads[n], NULL);
+		pthread_join(thpool->threads[n].pthread, NULL);
 	}
 	
 	//sleep(2);

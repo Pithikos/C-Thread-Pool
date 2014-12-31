@@ -96,17 +96,16 @@ typedef struct jobqueue_t{
 
 /* Thread */
 typedef struct thread_t{
-	pthread_t *pthread;                 /* pointer to front of queue  */
-	int        idle;                    /* is thread idle or working? */
+	pthread_t pthread;                  /* pointer to front of queue  */
+	int       idle;                     /* is thread idle or working? */
 } thread_t;
 
 
 /* Threadpool */
 typedef struct thpool_t{
 	pthread_mutex_t  rwmutex;            /* used for queue w/r access */
-	pthread_t*       threads;            /* pointer to threads' ID    */
+	thread_t*        threads;            /* pointer to threads        */
 	int              threadsN;           /* amount of threads         */
-	bsem_t*          threads_working;    /* flag as binary semaphore  */    
 	jobqueue_t*      jobqueue;           /* pointer to the job queue  */    
 } thpool_t;
 
