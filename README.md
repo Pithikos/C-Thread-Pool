@@ -131,3 +131,14 @@ DESCRIPTION
      Example:
      thpool_destroy(threadpool_p);           //threadpool_p being a pointer to a thpool_t
 ````
+
+
+Known issues
+========================================================================
+
+**pthread is leaking on thpool_destroy**
+
+The reason this occurs is that pthread_exit doesn't handle memory deallocation.
+One has to use pthread_join but that adds a huge amount of complexity. As long
+as you don't allocate and destroy thread pools all the time, you shouldn't be worried.
+Afterall that would beat the purpose of having a thread pool in the first place.
