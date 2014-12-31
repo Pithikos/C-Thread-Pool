@@ -56,15 +56,16 @@ thpool_t* thpool_init(int threadsN){
 		return NULL;
 	}
 	thpool->threadsN=threadsN;
-	
 	int n;
 	for (n=0; n<threadsN; n++){
-		//thread_t* th;
-		
-		//th = thpool->threads[n];
-		pthread_create(&(thpool->threads[n].pthread), NULL, (void *)thpool_thread_do, (thpool_t*)thpool);
-		//pthread_create(&(thpool->threads[n]), NULL, (void *)thpool_thread_do, (thpool_t*)thpool);
-		printf("Created thread %d in pool \n", n);
+		thread_t* th;
+		th = &(thpool->threads[n]);
+		args_t args;
+		args.arg1 = thpool;
+		args.arg2 = th;
+		pthread_create(&((*th).pthread), NULL, (void *)thpool_thread_do, (args_t*)&args);
+		(*th).id = n;
+		printf("Created thread %d in pool \n", (*th).id);
 	}
 	
 	return thpool;
@@ -73,10 +74,18 @@ thpool_t* thpool_init(int threadsN){
 
 /* What each individual thread is doing 
  * */
-static void thpool_thread_do(thpool_t* thpool){
+static void thpool_thread_do(args_t* args){
+	
+	thpool_t* thpool;
+	thread_t* thread;
+	thpool = (*args).arg1;
+	thread = (*args).arg2;
+	(*thread).working = 0;
 
 	while(thpool_keepalive){
-
+		//sleep(1);
+		
+		printf("thread %d not working anymore\n", (*thread).id);
 		bsem_wait(thpool->jobqueue->has_jobs);
 
 		if (thpool_keepalive){
@@ -89,15 +98,19 @@ static void thpool_thread_do(thpool_t* thpool){
 			job = jobqueue_pull(thpool);
 			pthread_mutex_unlock(&thpool->rwmutex);
 			if (job) {
-				printf("%u: Will run pulled job\n", (int)pthread_self());
+				(*thread).working = 1;
 				func_buff = job->function;
 				arg_buff  = job->arg;
 				func_buff(arg_buff);
 				free(job);
 			}
-
+			(*thread).working = 0;
 		}
 	}
+	
+	pthread_mutex_lock(&thpool->rwmutex);
+	thpool->threadsN --;
+	pthread_mutex_unlock(&thpool->rwmutex);
 }
 
 
@@ -126,9 +139,22 @@ int thpool_add_work(thpool_t* thpool, void *(*function_p)(void*), void* arg_p){
 
 /* Wait until all jobs in queue have finished */
 void thpool_wait(thpool_t* thpool){
-	while (thpool->jobqueue->len > 0) {
+	
+	int any_threads_working(thpool_t* thpool){
+		int n;
+		for (n=0; n < (thpool->threadsN); n++){
+			//printf("thread %d working?: %d\n", thpool->threads[n].id, thpool->threads[n].working);
+			if (thpool->threads[n].working){
+				return 1;
+			}
+		}
+		return 0;
+	}
+	
+	while (any_threads_working(thpool)) {
 		sleep(POLLING_INTERVAL);
 	}
+
 }
 
 
@@ -138,8 +164,37 @@ void thpool_destroy(thpool_t* thpool){
 	/* End each thread's infinite loop */
 	thpool_keepalive = 0;
 
+	int any_threads_idle(thpool_t* thpool){
+		int n;
+		for (n=0; n < (thpool->threadsN); n++){
+			//printf("thread %d working?: %d\n", thpool->threads[n].id, thpool->threads[n].working);
+			if (!thpool->threads[n].working){
+				return 1;
+			}
+		}
+		return 0;
+	}
+
+	/* Post semaphore untill all threads have exited */
+	//while (any_threads_idle(thpool)){
+	//	bsem_post(thpool->jobqueue->has_jobs);
+	//	sleep(POLLING_INTERVAL);
+	//}
+
 	/* Kill idle threads */
 	double TIMEOUT = 1.0;
+	time_t start, end;
+	double tpassed;
+	time (&start);
+	while (any_threads_idle(thpool)){
+		while (tpassed < TIMEOUT){
+			bsem_post(thpool->jobqueue->has_jobs);
+			time (&end);
+			tpassed = difftime(end,start);
+		}
+	}
+	
+	/*double TIMEOUT = 1.0;
 	time_t start, end;
 	double tpassed;
 	time (&start);
@@ -147,27 +202,23 @@ void thpool_destroy(thpool_t* thpool){
 		bsem_post(thpool->jobqueue->has_jobs);
 		time (&end);
 		tpassed = difftime(end,start);
-	}
+	}*/
 	
 	/* Wait for working threads to finish their work*/
-	int n;
-	for (n=0; n < (thpool->threadsN); n++){
-		pthread_join(thpool->threads[n].pthread, NULL);
-	}
-	
-	//sleep(2);
+	//int n;
+	//for (n=0; n < (thpool->threadsN); n++){
+		//pthread_join(thpool->threads[n].pthread, NULL);
+	//}
+
+	//sleep(1);
 
 	/* Job queue cleanup */
-	pthread_mutex_lock(&thpool->rwmutex);
 	jobqueue_destroy(thpool);
-	pthread_mutex_unlock(&thpool->rwmutex);
 	free(thpool->jobqueue);
 	
-	
 	/* Dealloc */
-	//free(thpool->threads);
-	//free(thpool);
-	printf("DEALLOC finito\n");
+	free(thpool->threads);
+	free(thpool);
 	
 }
 

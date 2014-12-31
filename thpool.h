@@ -69,6 +69,13 @@
 /* ========================== STRUCTURES ============================ */
 
 
+/* Generic packed args */
+typedef struct args_t {
+	void* arg1;
+	void* arg2;
+} args_t;
+
+
 /* Binary semaphore */
 typedef struct bsem_t {
 	pthread_mutex_t mutex;
@@ -96,8 +103,9 @@ typedef struct jobqueue_t{
 
 /* Thread */
 typedef struct thread_t{
+	int       id;                       /* friendly id                */
+	int       working;                  /* is thread idle or working? */
 	pthread_t pthread;                  /* pointer to front of queue  */
-	int       idle;                     /* is thread idle or working? */
 } thread_t;
 
 
@@ -140,7 +148,7 @@ thpool_t* thpool_init(int threadsN);
  * @param threadpool to use
  * @return nothing
  */
-static void thpool_thread_do(thpool_t* thpool);
+static void thpool_thread_do(args_t* args);
 
 
 /**
