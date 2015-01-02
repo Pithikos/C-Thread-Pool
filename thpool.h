@@ -69,13 +69,6 @@
 /* ========================== STRUCTURES ============================ */
 
 
-/* Generic packed args */
-typedef struct args_t {
-	void* arg1;
-	void* arg2;
-} args_t;
-
-
 /* Binary semaphore */
 typedef struct bsem_t {
 	pthread_mutex_t mutex;
@@ -94,26 +87,28 @@ typedef struct job_t{
 
 /* Job queue */
 typedef struct jobqueue_t{
-	job_t  *front;                       /* pointer to front of queue */
-	job_t  *rear;                        /* pointer to rear  of queue */
-	bsem_t *has_jobs;                    /* flag as binary semaphore  */
-	int    len;                          /* number of jobs in queue   */
+	pthread_mutex_t  rwmutex;            /* used for queue r/w access */
+	job_t           *front;              /* pointer to front of queue */
+	job_t           *rear;               /* pointer to rear  of queue */
+	bsem_t          *has_jobs;           /* flag as binary semaphore  */
+	int              len;                /* number of jobs in queue   */
 } jobqueue_t;
 
 
 /* Thread */
 typedef struct thread_t{
 	int       id;                       /* friendly id                */
-	int       working;                  /* is thread idle or working? */
-	pthread_t pthread;                  /* pointer to front of queue  */
+	int       initialized;              /* binary to solve race conds */
+	pthread_t pthread;                  /* pointer to actual thread   */
+	struct thpool_t* thpool;            /* access to thpool           */
 } thread_t;
 
 
 /* Threadpool */
 typedef struct thpool_t{
-	pthread_mutex_t  rwmutex;            /* used for queue w/r access */
-	thread_t*        threads;            /* pointer to threads        */
-	int              threadsN;           /* amount of threads         */
+	thread_t**       threads;            /* pointer to threads        */
+	int              threads_alive;      /* threads currently alive   */
+	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
 	jobqueue_t*      jobqueue;           /* pointer to the job queue  */    
 } thpool_t;
 
@@ -137,18 +132,6 @@ typedef struct thpool_t{
  *         NULL on error
  */
 thpool_t* thpool_init(int threadsN);
-
-
-/**
- * @brief What each thread is doing
- * 
- * In principle this is an endless loop. The only time this loop gets interuppted is once
- * thpool_destroy() is invoked.
- * 
- * @param threadpool to use
- * @return nothing
- */
-static void thpool_thread_do(args_t* args);
 
 
 /**
@@ -180,6 +163,30 @@ void thpool_wait(thpool_t* thpool);
 
 
 /**
+ * @brief Pauses all threads immediately
+ * 
+ * The threads will be paused no matter if they are idle or working.
+ * The threads return to their previous states once thpool_continue
+ * is called.
+ * 
+ * While the thread is being paused, new work can be added.
+ * 
+ * @param  threadpool where the threads should be paused
+ * @return nothing
+ */
+void thpool_pause(thpool_t* thpool);
+
+
+/**
+ * @brief Unpauses all threads if they are paused
+ * 
+ * @param  threadpool where the threads should be unpaused
+ * @return nothing
+ */
+void thpool_continue(thpool_t* thpool);
+
+
+/**
  * @brief Destroy the threadpool
  * 
  * This will 'kill' the threadpool and free up memory. If threads are active when this
@@ -189,6 +196,47 @@ void thpool_wait(thpool_t* thpool);
  * @return nothing
  */
 void thpool_destroy(thpool_t* thpool);
+
+
+
+/* ----------------------- Thread specific --------------------------- */
+
+
+/**
+ * @brief Initialize a thread in the thread pool
+ * 
+ * Will initialize a new thread for the given threadpool and give the
+ * the thread an ID
+ * 
+ * Notice also that the thread's id is not populated automatically.
+ * 
+ * @param threadpool    threadpool to create thread
+ * @param thread        pointer to the thread that will be created
+ * @param id            id to be given to thread
+ * 
+ * @return the initialized thread
+ */
+thread_t* thread_init(thpool_t* thpool, thread_t* thread, int id);
+
+
+/**
+ * @brief What each thread is doing
+ * 
+ * In principle this is an endless loop. The only time this loop gets interuppted is once
+ * thpool_destroy() is invoked.
+ * 
+ * @param threadpool to use
+ * @return nothing
+ */
+static void* thread_do(thread_t* thread);
+
+
+/**
+ * @brief Sets the calling thread on hold until threads_on_hold is set to 1
+ * @param nothing
+ * @return nothing
+ */
+static void thread_hold();
 
 
 
@@ -219,6 +267,8 @@ static void jobqueue_clear(thpool_t* thpool);
  * before passed to this function or else other functions like jobqueue_empty()
  * will be broken.
  * 
+ * MUST HOLD MUTEX WHEN CALLING
+ * 
  * @param pointer to threadpool
  * @param pointer to the new job(MUST BE ALLOCATED)
  * @return nothing 
@@ -231,6 +281,8 @@ static void jobqueue_push(thpool_t* thpool, job_t* newjob);
  * 
  * This does not free allocated memory so be sure to have peeked() \n
  * before invoking this as else there will result lost memory pointers.
+ * 
+ * MUST HOLD MUTEX WHEN CALLING
  * 
  * @param  pointer to threadpool
  * @return point to job on success,
@@ -251,11 +303,44 @@ static job_t* jobqueue_pull(thpool_t* thpool);
 static void jobqueue_destroy(thpool_t* thpool);
 
 
-/** 
- * Binary semaphore
- * 
+
+
+
+/* ======================== SYNCHRONISATION ========================= */
+
+/**
+ * @brief Inits semaphore to given value
+ * @param binary semaphore
+ * @param value 1 or 0
+ * */
+static void bsem_init(bsem_t *bsem, int value);
+
+
+/**
+ * @brief Resets semaphore to 0
+ * @param binary semaphore
+ * */
+static void bsem_reset(bsem_t *bsem);
+
+
+/**
+ * @brief Sets semaphore to one and notifies at least one thread
+ * @param binary semaphore
  * */
 static void bsem_post(bsem_t *bsem);
+
+
+/**
+ * @brief Sets semaphore to one and notifies all threads
+ * @param binary semaphore
+ * */
+static void bsem_post_all(bsem_t *bsem);
+
+
+/**
+ * @brief Waits on semaphore until semaphore has value 0
+ * @param binary semaphore
+ * */
 static void bsem_wait(bsem_t *bsem);
 
 

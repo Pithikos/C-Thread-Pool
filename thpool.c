@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <time.h> 
 
@@ -24,55 +23,73 @@
 #define POLLING_INTERVAL 1
 
 static int threads_keepalive;
-static int threads_hold_flag;
+static int threads_on_hold;
+
+static int return_value;
 
 
+
+
+
+/* ========================== THREADPOOL ============================ */
 
 /* Initialise thread pool */
 thpool_t* thpool_init(int threadsN){
 
-	threads_hold_flag = 0;
+	threads_on_hold   = 0;
 	threads_keepalive = 1;
 
-	if (threadsN < 0){
+	if ( threadsN < 0){
 		threadsN = 0;
 	}
-	
+
+
 	/* Make new thread pool */
 	thpool_t* thpool;
 	thpool = (thpool_t*)malloc(sizeof(thpool_t));
 	if (thpool==NULL){
 		fprintf(stderr, "thpool_init(): Could not allocate memory for thread pool\n");
-		return NULL;
+		exit(1);
 	}
+	thpool->threads_alive = 0;
 
 	/* Initialise the job queue */
 	if (jobqueue_init(thpool)==-1){
 		fprintf(stderr, "thpool_init(): Could not allocate memory for job queue\n");
-		return NULL;
+		exit(1);
 	}
 
 	/* Make threads in pool */
-	thpool->threads = (thread_t*)malloc(threadsN*sizeof(thread_t));
+	thpool->threads = (thread_t**)malloc(threadsN * sizeof(thread_t));
 	if (thpool->threads==NULL){
 		fprintf(stderr, "thpool_init(): Could not allocate memory for threads\n");
-		return NULL;
+		exit(1);
 	}
-	thpool->threadsN=threadsN;
+	
+	/* Thread init */
 	int n;
 	for (n=0; n<threadsN; n++){
 		
-		thread_t* th;
-		th = &(thpool->threads[n]);
-		(*th).id  = n;
-		args_t args;
-		args.arg1 = thpool;
-		args.arg2 = th;
-		pthread_create(&((*th).pthread), NULL, (void *)thread_do, (args_t*)&args);
-		pthread_detach((*th).pthread);
-		printf("Created thread %d in pool \n", (*th).id);
-	}
+		thread_init(thpool, thpool->threads[n], n);
+		//thpool->threads[n]->thpool = thpool;
+		/*puts("next");
+		thpool->threads[n] = thread_init(thpool);
+		(*thpool->threads[n]).id = n;
+		printf("Created thread %d in pool \n", n);*/
 
+
+		//thpool->threads[n] = malloc(sizeof(thread_t));
+	//	thpool->threads[n]->initialized = 0;
+		//thpool->threads[n]->thpool = thpool;
+	//	pthread_create(&thpool->threads[n]->pthread, NULL, (void *)thread_do, thpool->threads[n]);
+	//	pthread_detach(thpool->threads[n]->pthread);
+			
+	
+	}
+	
+	/* Wait for threads to initialize */
+	while (thpool->threads_alive != threadsN) {}
+	
 	return thpool;
 }
 
@@ -80,21 +97,21 @@ thpool_t* thpool_init(int threadsN){
 /* Add work to the thread pool */
 int thpool_add_work(thpool_t* thpool, void *(*function_p)(void*), void* arg_p){
 	job_t* newjob;
-	
+
 	newjob=(job_t*)malloc(sizeof(job_t));
 	if (newjob==NULL){
 		fprintf(stderr, "thpool_add_work(): Could not allocate memory for new job\n");
 		return -1;
 	}
-	
+
 	/* add function and argument */
 	newjob->function=function_p;
 	newjob->arg=arg_p;
-	
+
 	/* add job to queue */
-	pthread_mutex_lock(&thpool->rwmutex);
+	pthread_mutex_lock(&thpool->jobqueue->rwmutex);
 	jobqueue_push(thpool, newjob);
-	pthread_mutex_unlock(&thpool->rwmutex);
+	pthread_mutex_unlock(&thpool->jobqueue->rwmutex);
 
 	return 0;
 }
@@ -113,31 +130,22 @@ void thpool_destroy(thpool_t* thpool){
 
 	/* End each thread 's infinite loop */
 	threads_keepalive = 0;
-
-	int any_threads_idle(thpool_t* thpool){
-		int n;
-		for (n=0; n < (thpool->threadsN); n++){
-			if (!thpool->threads[n].working){
-				return 1;
-			}
-		}
-		return 0;
-	}
-
-	/* Kill idle threads */
+	
+	/* Give one second to kill idle threads */
 	double TIMEOUT = 1.0;
 	time_t start, end;
 	double tpassed;
 	time (&start);
-	while (any_threads_idle(thpool))
-	{
-		while (tpassed < TIMEOUT)
-		{
-			bsem_post(thpool->jobqueue->has_jobs);
-			time (&end);
-			tpassed = difftime(end,start);
-		}
+	while (tpassed < TIMEOUT && thpool->threads_alive){
 		bsem_post(thpool->jobqueue->has_jobs);
+		time (&end);
+		tpassed = difftime(end,start);
+	}
+	
+	/* Poll remaining threads */
+	while (thpool->threads_alive){
+		bsem_post(thpool->jobqueue->has_jobs);
+		sleep(1);
 	}
 
 	/* Job queue cleanup */
@@ -152,98 +160,81 @@ void thpool_destroy(thpool_t* thpool){
 
 
 void thpool_pause(thpool_t* thpool) {
-	threads_hold();
+	int n;
+	for (n=0; n < thpool->threads_alive; n++){
+		//pthread_kill(thpool->threads[n]->pthread, SIGUSR1);
+		pthread_kill(thpool->threads[n]->pthread, SIGUSR1);
+	}
 }
 
 
 void thpool_continue(thpool_t* thpool) {
-	threads_unhold();
+	threads_on_hold = 0;
 }
 
 
 
 
 
-/* ====================== THREAD OPERATIONS ========================= */
+/* ============================ THREAD ============================== */
 
+thread_t* thread_init (thpool_t *thpool, thread_t *thread, int id){
+	//thread = malloc(sizeof(thread_t));
+	//thread->initialized = 0;
+	//thread->thpool = thpool;
+	//pthread_create(&thread->pthread, NULL, (void *)thread_do, thread);
+	//pthread_detach(thread->pthread);
+	
+	
+	
+	thread = malloc(sizeof(thread_t));
+	if (thread == NULL){
+		fprintf(stderr, "thpool_init(): Could not allocate memory for thread\n");
+		exit(1);
+	}
 
-static void threads_hold () {
-	threads_hold_flag = 1;
-	while (threads_hold_flag){
+	thread->thpool = thpool;
+	thread->id     = id;
+
+	pthread_create(&thread->pthread, NULL, (void *)thread_do, thread);
+	pthread_detach(thread->pthread);
+	
+	return thread;
+}
+
+static void thread_hold () {
+	threads_on_hold = 1;
+	while (threads_on_hold){
 		sleep(1);
 	}
 }
 
 
-static void threads_unhold () {
-	threads_hold_flag = 0;
-}
-
-
-static void thread_suicide() {
-	pthread_exit(NULL);
-}
-
-
-static void thread_kill(thread_t *th, int now) {
-	if (!now && (*th).working){
-		sleep(1);
-	}
-	pthread_kill((*th).pthread, SIGTERM);
-}
-
-
-static void signal_handler (int signum) {
-	
-	switch(signum){
-	
-		case SIGUSR1:
-			threads_hold();
-			break;
-			
-		case SIGUSR2:
-			threads_unhold();
-			break;
-			
-		case SIGTERM:
-			thread_suicide();
-			break;
-	}
-}
-
-
-
-/* 
- * Init point for each thread
- * 
- * */
-static void thread_do(args_t* args){
+static void* thread_do(thread_t* thread){
 
 	/* Assure all threads have been created before starting serving */
-	thpool_t* thpool;
-	thread_t* thread;
-	thpool = (*args).arg1;
-	thread = (*args).arg2;
-	(*thread).working = 0;
+	thpool_t* thpool = thread->thpool;
 	
 	/* Register signal handler */
 	struct sigaction act;
-	act.sa_handler = signal_handler;
+	act.sa_handler = thread_hold;
 	if (sigaction(SIGUSR1, &act, NULL) == -1) {
 		perror("Error: cannot handle SIGUSR1");
 	}
-	if (sigaction(SIGUSR2, &act, NULL) == -1) {
-		perror("Error: cannot handle SIGUSR2");
-	}
-	if (sigaction(SIGTERM, &act, NULL) == -1) {
-		perror("Error: cannot handle SIGTERM");
-	}
 	
+	/* Mark thread as alive (initialized) */
+	pthread_mutex_lock(&thpool->thcount_lock);
+	thpool->threads_alive += 1;
+	pthread_mutex_unlock(&thpool->thcount_lock);
+//	puts("ts");
 
+	//printf("Thread (%u) initialized init?: %d\n", (int)pthread_self(), (*thread).initialized);
+	//printf("Thread (%u) init adr: %p\n", (int)pthread_self(), &(*thread).initialized);
+	//printf("Thread (%u) id: %d\n", (int)pthread_self(), (*thread).id);
+	
 	while(threads_keepalive){
 
 		bsem_wait(thpool->jobqueue->has_jobs);
-		(*thread).working = 1;
 
 		if (threads_keepalive){
 
@@ -251,30 +242,35 @@ static void thread_do(args_t* args){
 			void*(*func_buff)(void* arg);
 			void*  arg_buff;
 			job_t* job;
-			pthread_mutex_lock(&thpool->rwmutex);
+			pthread_mutex_lock(&thpool->jobqueue->rwmutex);
 			job = jobqueue_pull(thpool);
-			pthread_mutex_unlock(&thpool->rwmutex);
+			pthread_mutex_unlock(&thpool->jobqueue->rwmutex);
 			if (job) {
 				func_buff = job->function;
 				arg_buff  = job->arg;
 				func_buff(arg_buff);
 				free(job);
 			}
-			(*thread).working = 0;
+
 		}
 	}
-	pthread_mutex_lock(&thpool->rwmutex);
-	thpool->threadsN --;
-	pthread_mutex_unlock(&thpool->rwmutex);
+	pthread_mutex_lock(&thpool->thcount_lock);
+	thpool->threads_alive --;
+	pthread_mutex_unlock(&thpool->thcount_lock);
 	printf("Thread %d exiting\n", (*thread).id);
-	thread_suicide();
+	pthread_exit(NULL);
+}
+
+
+static void thread_destroy (thread_t* thread){
+	free(thread);
 }
 
 
 
 
 
-/* ===================== JOB QUEUE OPERATIONS ======================= */
+/* ============================ JOB QUEUE =========================== */
 
 
 /* Initialise queue */
@@ -284,6 +280,7 @@ static int jobqueue_init(thpool_t* thpool){
 		return -1;
 	}
 	thpool->jobqueue->has_jobs = (bsem_t*)malloc(sizeof(bsem_t));
+	bsem_init(thpool->jobqueue->has_jobs, 0);
 	jobqueue_clear(thpool);
 	return 0;
 }
@@ -371,11 +368,32 @@ static void jobqueue_destroy(thpool_t* thpool){
 /* ======================== SYNCHRONISATION ========================= */
 
 
+/* Binary semaphore init */
+static void bsem_init(bsem_t *bsem, int value) {
+	bsem->v = value;
+}
+
+
+/* Binary semaphore reset */
+static void bsem_reset(bsem_t *bsem) {
+	bsem_init(bsem, 0);
+}
+
+
 /* Binary semaphore post */
 static void bsem_post(bsem_t *bsem) {
 	pthread_mutex_lock(&bsem->mutex);
 	bsem->v = 1;
 	pthread_cond_signal(&bsem->cond);
+	pthread_mutex_unlock(&bsem->mutex);
+}
+
+
+/* Binary semaphore post */
+static void bsem_post_all(bsem_t *bsem) {
+	pthread_mutex_lock(&bsem->mutex);
+	bsem->v = 1;
+	pthread_cond_broadcast(&bsem->cond);
 	pthread_mutex_unlock(&bsem->mutex);
 }
 
