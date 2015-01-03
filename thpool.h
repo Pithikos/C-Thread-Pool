@@ -124,8 +124,8 @@ typedef struct thpool_t{
 /**
  * @brief  Initialize threadpool
  * 
- * Allocates memory for the threadpool, jobqueue, semaphore and fixes 
- * pointers in jobqueue.
+ * Initializes a threadpool. This function will not return untill all
+ * threads have initialized succesfully.
  * 
  * @param  number of threads to be used
  * @return threadpool struct on success,
@@ -141,7 +141,7 @@ thpool_t* thpool_init(int threadsN);
  * If you want to add to work a function with more than one arguments then
  * a way to implement this is by passing a pointer to a structure.
  * 
- * ATTENTION: You have to cast both the function and argument to not get warnings.
+ * NOTICE: You have to cast both the function and argument to not get warnings.
  * 
  * @param  threadpool to where the work will be added to
  * @param  function to add as work
@@ -166,7 +166,7 @@ void thpool_wait(thpool_t* thpool);
  * @brief Pauses all threads immediately
  * 
  * The threads will be paused no matter if they are idle or working.
- * The threads return to their previous states once thpool_continue
+ * The threads return to their previous states once thpool_resume
  * is called.
  * 
  * While the thread is being paused, new work can be added.
@@ -183,7 +183,7 @@ void thpool_pause(thpool_t* thpool);
  * @param  threadpool where the threads should be unpaused
  * @return nothing
  */
-void thpool_continue(thpool_t* thpool);
+void thpool_resume(thpool_t* thpool);
 
 
 /**
