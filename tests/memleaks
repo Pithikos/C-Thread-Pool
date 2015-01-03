@@ -1,0 +1,64 @@
+#! /bin/bash
+
+#
+# This file has several tests to check for memory leaks.
+# valgrind is used so make sure you have it installed
+#
+
+
+function needle { #needle #haystack
+	python -c "import re; print(re.search(r'$1', '$2').group(0))"
+}
+function extract_num { #needle with number #haystack
+	string=$(needle "$1" "$2")
+	needle "[0-9]*" "$string"
+}
+function err { #string #log
+	echo "------------------- ERROR ------------------------"
+	echo "$1"
+	echo "$2" >> memleaks.log
+	exit 1
+}
+
+
+function test_single_thread_alloc {
+	
+	read -d '' code <<"EOF"
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include "../thpool.h"
+
+int main(){
+
+	thpool_t* threadpool;
+	threadpool = thpool_init(1);
+	thpool_destroy(threadpool);
+
+	return 0;
+}
+EOF
+	
+	echo "Testing single thread creation and kill"
+	echo "$code" > _test_.c
+	gcc _test_.c ../thpool.c -pthread -o test
+	output=$(valgrind --leak-check=full --track-origins=yes ./test 2>&1 /dev/null)
+	heap_usage=$(echo "$output" | grep "total heap usage")
+	allocs=$(extract_num "[0-9]* allocs" "$heap_usage")
+	frees=$(extract_num "[0-9]* frees" "$heap_usage")
+	if [ "$allocs" == "$frees" ]; then
+		return false
+	fi
+	err "Allocated $allocs times but freed only $frees" "$output"
+}
+
+
+
+
+
+
+
+# Run tests
+test_single_thread_alloc
+
+echo "No errors"
