@@ -79,7 +79,104 @@ EOF
 
 
 
+
+function test_mass_addition2 {
+	
+	read -d '' code <<"EOF"
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include "../thpool.h"
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+int sum=0;
+
+void add_one() {
+	pthread_mutex_lock(&mutex);
+	sum ++;
+	pthread_mutex_unlock(&mutex);
+}
+
+int main(){
+
+	thpool_t* threadpool;
+	threadpool = thpool_init(1000);
+	
+	int n;
+	for (n=0; n<100; n++){
+		thpool_add_work(threadpool, (void*)add_one, NULL);
+	}
+	
+	thpool_wait(threadpool);
+	
+	printf("%d", sum);
+
+	return 0;
+}
+EOF
+
+	echo "Adding up to 100 with 1000 threads"
+	echo "$code" > _test_.c
+	gcc _test_.c ../thpool.c -pthread -o test
+	output=$(./test 2>&1 /dev/null)
+	if [ "$output" == "100" ]; then
+		return
+	fi
+	err "Expected 100 but got $output" "$output"
+}
+
+
+
+function test_mass_addition3 {
+	
+	read -d '' code <<"EOF"
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include "../thpool.h"
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+int sum=0;
+
+void add_one() {
+	pthread_mutex_lock(&mutex);
+	sum ++;
+	pthread_mutex_unlock(&mutex);
+}
+
+int main(){
+
+	thpool_t* threadpool;
+	threadpool = thpool_init(1000);
+	
+	int n;
+	for (n=0; n<100000; n++){
+		thpool_add_work(threadpool, (void*)add_one, NULL);
+	}
+	
+	thpool_wait(threadpool);
+	
+	printf("%d", sum);
+
+	return 0;
+}
+EOF
+
+	echo "Adding up to 100000 with 1000 threads"
+	echo "$code" > _test_.c
+	gcc _test_.c ../thpool.c -pthread -o test
+	output=$(./test 2>&1 /dev/null)
+	if [ "$output" == "100000" ]; then
+		return
+	fi
+	err "Expected 100000 but got $output" "$output"
+}
+
+
+
 # Run tests
 test_mass_addition
+test_mass_addition2
+test_mass_addition3
 
 echo "No errors"
