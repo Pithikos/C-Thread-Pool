@@ -6,6 +6,9 @@
 #
 
 
+
+# --------------------------- Generic ----------------------------------
+
 function needle { #needle #haystack
 	python -c "import re; print(re.search(r'$1', '$2').group(0))"
 }
@@ -19,6 +22,13 @@ function err { #string #log
 	echo "$2" >> memleaks.log
 	exit 1
 }
+
+
+
+
+
+
+# ---------------------------- Tests -----------------------------------
 
 
 function test_single_thread_alloc {
@@ -39,7 +49,7 @@ int main(){
 }
 EOF
 	
-	echo "Testing single thread creation and kill"
+	echo "Testing single thread creation and destruction in pool"
 	echo "$code" > _test_.c
 	gcc _test_.c ../thpool.c -pthread -o test
 	output=$(valgrind --leak-check=full --track-origins=yes ./test 2>&1 /dev/null)
@@ -47,18 +57,86 @@ EOF
 	allocs=$(extract_num "[0-9]* allocs" "$heap_usage")
 	frees=$(extract_num "[0-9]* frees" "$heap_usage")
 	if [ "$allocs" == "$frees" ]; then
-		return false
+		return
 	fi
 	err "Allocated $allocs times but freed only $frees" "$output"
 }
 
 
+function test_many_thread_allocs {
+	
+	read -d '' code <<"EOF"
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include "../thpool.h"
+
+int main(){
+
+	thpool_t* threadpool;
+	threadpool = thpool_init(4);  // VALGRIND SPENDS 1 SEC TO KILL EACH THREAD
+	                              // SO KEEP THIS LOW
+	thpool_destroy(threadpool);
+
+	return 0;
+}
+EOF
+	
+	echo "Testing multiple threads creation and destruction in pool (est  ~4secs)"
+	echo "$code" > _test_.c
+	gcc _test_.c ../thpool.c -pthread -o test
+	output=$(valgrind --leak-check=full --track-origins=yes ./test 2>&1 /dev/null)
+	heap_usage=$(echo "$output" | grep "total heap usage")
+	allocs=$(extract_num "[0-9]* allocs" "$heap_usage")
+	frees=$(extract_num "[0-9]* frees" "$heap_usage")
+	if [ "$allocs" == "$frees" ]; then
+		return
+	fi
+	err "Allocated $allocs times but freed only $frees" "$output"
+}
 
 
+# This is the same with test_many_thread_allocs but multiplied
+function test_many_thread_allocs_multi {
+
+	read -d '' code <<"EOF"
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include "../thpool.h"
+
+int main(){
+
+	thpool_t* threadpool;
+	threadpool = thpool_init(4);  // VALGRIND SPENDS 1 SEC TO KILL EACH THREAD
+	                              // SO KEEP THIS LOW
+	thpool_destroy(threadpool);
+
+	return 0;
+}
+EOF
+
+	echo "Testing multiple threads creation and destruction in pool (est ~40secs)"
+	echo "$code" > _test_.c
+	gcc _test_.c ../thpool.c -pthread -o test
+	for i in {1..10}; do
+		output=$(valgrind --leak-check=full --track-origins=yes ./test 2>&1 /dev/null)
+		heap_usage=$(echo "$output" | grep "total heap usage")
+		allocs=$(extract_num "[0-9]* allocs" "$heap_usage")
+		frees=$(extract_num "[0-9]* frees" "$heap_usage")
+		if (( "$allocs"-"$frees" > 4 )); then
+		#if [ "$allocs" != "$frees" ]; then
+			msg2="Max 4 leaks are allowed since each pthread might erronoumesly show a leak in valgrind."
+			err "Allocated $allocs times but freed only $frees. $msg2" "$output"
+		fi
+	done
+}
 
 
 
 # Run tests
 test_single_thread_alloc
+test_many_thread_allocs
+test_many_thread_allocs_multi
 
-echo "No errors"
+echo "No memory leaks"
