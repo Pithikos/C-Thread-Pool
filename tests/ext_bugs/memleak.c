@@ -5,6 +5,9 @@
 #include <unistd.h>
 #include <time.h>
 
+/* This showcasts this issue: https://sourceware.org/ml/glibc-bugs/2007-04/msg00036.html */
+/* Alsoe here: http://stackoverflow.com/questions/27803819/pthreads-leak-memory-even-if-used-correctly/27804629 */
+
 volatile int threads_keepalive = 1;
 
 void* thread_do(void *arg){
