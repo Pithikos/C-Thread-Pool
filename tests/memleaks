@@ -124,10 +124,8 @@ EOF
 		heap_usage=$(echo "$output" | grep "total heap usage")
 		allocs=$(extract_num "[0-9]* allocs" "$heap_usage")
 		frees=$(extract_num "[0-9]* frees" "$heap_usage")
-		if (( "$allocs"-"$frees" > 4 )); then
-		#if [ "$allocs" != "$frees" ]; then
-			msg2="Max 4 leaks are allowed since each pthread might erronoumesly show a leak in valgrind."
-			err "Allocated $allocs times but freed only $frees. $msg2" "$output"
+		if [ "$allocs" != "$frees" ]; then
+			err "Allocated $allocs times but freed only $frees" "$output"
 		fi
 	done
 }
