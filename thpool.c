@@ -22,10 +22,10 @@
 
 #define POLLING_INTERVAL 1
 
-static int threads_keepalive;
-static int threads_on_hold;
+static volatile int threads_keepalive;
+static volatile int threads_on_hold;
 
-static int return_value;
+static volatile int return_value;
 
 
 
@@ -70,21 +70,15 @@ thpool_t* thpool_init(int threadsN){
 	int n;
 	for (n=0; n<threadsN; n++){
 		
-		thread_init(thpool, thpool->threads[n], n);
-		//thpool->threads[n]->thpool = thpool;
-		/*puts("next");
-		thpool->threads[n] = thread_init(thpool);
-		(*thpool->threads[n]).id = n;
-		printf("Created thread %d in pool \n", n);*/
-
-
-		//thpool->threads[n] = malloc(sizeof(thread_t));
-	//	thpool->threads[n]->initialized = 0;
-		//thpool->threads[n]->thpool = thpool;
-	//	pthread_create(&thpool->threads[n]->pthread, NULL, (void *)thread_do, thpool->threads[n]);
-	//	pthread_detach(thpool->threads[n]->pthread);
+		//thread_init(thpool, &thpool->threads[n], n);
+		//printf("Created thread %d in pool \n", n);
+		thpool->threads[n] = malloc(sizeof(thread_t));
+		thpool->threads[n]->thpool = thpool;
+		thpool->threads[n]->id = n;
+		pthread_create(&thpool->threads[n]->pthread, NULL, (void *)thread_do, thpool->threads[n]);
+		pthread_detach(thpool->threads[n]->pthread);
 			
-	
+		
 	}
 	
 	/* Wait for threads to initialize */
@@ -127,6 +121,8 @@ void thpool_wait(thpool_t* thpool){
 
 /* Destroy the threadpool */
 void thpool_destroy(thpool_t* thpool){
+	
+	int threads_total = thpool->threads_alive;
 
 	/* End each thread 's infinite loop */
 	threads_keepalive = 0;
@@ -152,23 +148,27 @@ void thpool_destroy(thpool_t* thpool){
 	jobqueue_destroy(thpool);
 	free(thpool->jobqueue);
 	
-	/* Dealloc */
+	/* Deallocs */
+	int n;
+	for (n=0; n < threads_total; n++){
+		puts("FREEING THREAD");
+		//thread_destroy(thpool->threads[n]);
+		free(thpool->threads[n]);
+	}
 	free(thpool->threads);
 	free(thpool);
-
 }
 
 
 void thpool_pause(thpool_t* thpool) {
 	int n;
 	for (n=0; n < thpool->threads_alive; n++){
-		//pthread_kill(thpool->threads[n]->pthread, SIGUSR1);
 		pthread_kill(thpool->threads[n]->pthread, SIGUSR1);
 	}
 }
 
 
-void thpool_continue(thpool_t* thpool) {
+void thpool_resume(thpool_t* thpool) {
 	threads_on_hold = 0;
 }
 
@@ -178,28 +178,20 @@ void thpool_continue(thpool_t* thpool) {
 
 /* ============================ THREAD ============================== */
 
-thread_t* thread_init (thpool_t *thpool, thread_t *thread, int id){
-	//thread = malloc(sizeof(thread_t));
-	//thread->initialized = 0;
-	//thread->thpool = thpool;
-	//pthread_create(&thread->pthread, NULL, (void *)thread_do, thread);
-	//pthread_detach(thread->pthread);
+void thread_init (thpool_t *thpool, thread_t **thread, int id){
 	
-	
-	
-	thread = malloc(sizeof(thread_t));
+	*thread = (thread_t*)malloc(sizeof(thread_t));
 	if (thread == NULL){
 		fprintf(stderr, "thpool_init(): Could not allocate memory for thread\n");
 		exit(1);
 	}
 
-	thread->thpool = thpool;
-	thread->id     = id;
+	(*thread)->thpool = thpool;
+	(*thread)->id     = id;
 
-	pthread_create(&thread->pthread, NULL, (void *)thread_do, thread);
-	pthread_detach(thread->pthread);
+	pthread_create(&(*thread)->pthread, NULL, (void *)thread_do, (*thread));
+	pthread_detach((*thread)->pthread);
 	
-	return thread;
 }
 
 static void thread_hold () {
@@ -226,7 +218,6 @@ static void* thread_do(thread_t* thread){
 	pthread_mutex_lock(&thpool->thcount_lock);
 	thpool->threads_alive += 1;
 	pthread_mutex_unlock(&thpool->thcount_lock);
-//	puts("ts");
 
 	//printf("Thread (%u) initialized init?: %d\n", (int)pthread_self(), (*thread).initialized);
 	//printf("Thread (%u) init adr: %p\n", (int)pthread_self(), &(*thread).initialized);
@@ -263,10 +254,9 @@ static void* thread_do(thread_t* thread){
 
 
 static void thread_destroy (thread_t* thread){
+	//puts("Destroying thread");
 	free(thread);
 }
-
-
 
 
 
@@ -370,6 +360,10 @@ static void jobqueue_destroy(thpool_t* thpool){
 
 /* Binary semaphore init */
 static void bsem_init(bsem_t *bsem, int value) {
+	if (value < 0 || value > 1) {
+		printf("ERROR: bsem_init(): Binary semaphore can take only values 1 or 0");
+		exit(1);
+	}
 	bsem->v = value;
 }
 
