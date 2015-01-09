@@ -247,7 +247,8 @@ static void* thread_do(thread_t* thread){
 	thpool->threads_alive --;
 	pthread_mutex_unlock(&thpool->thcount_lock);
 	printf("Thread %d exiting\n", (*thread).id);
-	pthread_exit(NULL);
+	//pthread_exit(NULL);
+	return NULL;
 }
 
 

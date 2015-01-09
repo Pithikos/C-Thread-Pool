@@ -52,6 +52,7 @@
  *    |___________|         |           |..
  * 
  * 
+ * 
  */
 
 
@@ -211,12 +212,11 @@ void thpool_destroy(thpool_t* thpool);
  * Notice also that the thread's id is not populated automatically.
  * 
  * @param threadpool    threadpool to create thread
- * @param thread        pointer to the thread that will be created
+ * @param thread        address to the pointer of the thread to be created
  * @param id            id to be given to thread
  * 
- * @return the initialized thread
  */
-thread_t* thread_init(thpool_t* thpool, thread_t* thread, int id);
+void thread_init(thpool_t* thpool, thread_t** thread, int id);
 
 
 /**
@@ -237,6 +237,16 @@ static void* thread_do(thread_t* thread);
  * @return nothing
  */
 static void thread_hold();
+
+
+/**
+ * @brief Frees a thread
+ * @param thread
+ * @return nothing
+ */
+static void thread_destroy(thread_t* thread);
+
+
 
 
 
@@ -306,7 +316,8 @@ static void jobqueue_destroy(thpool_t* thpool);
 
 
 
-/* ======================== SYNCHRONISATION ========================= */
+/* ----------------------- Synchronisation -------------------------- */
+
 
 /**
  * @brief Inits semaphore to given value
