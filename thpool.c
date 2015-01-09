@@ -131,14 +131,14 @@ void thpool_destroy(thpool_t* thpool){
 	double tpassed;
 	time (&start);
 	while (tpassed < TIMEOUT && thpool->threads_alive){
-		bsem_post_to_all(thpool->jobqueue->has_jobs);
+		bsem_post_all(thpool->jobqueue->has_jobs);
 		time (&end);
 		tpassed = difftime(end,start);
 	}
 	
 	/* Poll remaining threads */
 	while (thpool->threads_alive){
-		bsem_post_to_all(thpool->jobqueue->has_jobs);
+		bsem_post_all(thpool->jobqueue->has_jobs);
 		sleep(1);
 	}
 
