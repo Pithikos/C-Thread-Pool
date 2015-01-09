@@ -1,182 +1,28 @@
 #! /bin/bash
 
 #
-# This file has several tests to check for memory leaks.
-# valgrind is used so make sure you have it installed
+# This file has several functional tests similar to what a user
+# might use in his/her code
 #
 
+. funcs
 
 
-# --------------------------- Generic ----------------------------------
-
-function needle { #needle #haystack
-	python -c "import re; print(re.search(r'$1', '$2').group(0))"
-}
-function extract_num { #needle with number #haystack
-	string=$(needle "$1" "$2")
-	needle "[0-9]*" "$string"
-}
-function err { #string #log
-	echo "------------------- ERROR ------------------------"
-	echo "$1"
-	echo "$2" >> memleaks.log
-	exit 1
-}
-
-
-
-
-
-
-# ---------------------------- Tests -----------------------------------
-
-
-function test_mass_addition {
-	
-	read -d '' code <<"EOF"
-#include <stdio.h>
-#include <unistd.h>
-#include <time.h>
-#include "../thpool.h"
-
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int sum=0;
-
-void add_one() {
-	pthread_mutex_lock(&mutex);
-	sum ++;
-	pthread_mutex_unlock(&mutex);
-}
-
-int main(){
-
-	thpool_t* threadpool;
-	threadpool = thpool_init(10);
-	
-	int n;
-	for (n=0; n<1000; n++){
-		thpool_add_work(threadpool, (void*)add_one, NULL);
-	}
-	
-	thpool_wait(threadpool);
-	
-	printf("%d", sum);
-
-	return 0;
-}
-EOF
-
-	echo "Adding up to 1000 with 10 threads"
-	echo "$code" > _test_.c
-	gcc _test_.c ../thpool.c -pthread -o test
-	output=$(./test 2>&1 /dev/null)
-	if [ "$output" == "1000" ]; then
+function test_mass_addition { #endsum #threads
+	echo "Adding up to $1 with $2 threads"
+	gcc src/conc_increment.c ../thpool.c -pthread -o test
+	output=$(./test $1 $2)
+	num=$(echo $output | awk '{print $(NF)}')
+	if [ "$num" == "$1" ]; then
 		return
 	fi
-	err "Expected 1000 but got $output" "$output"
+	err "Expected $1 but got $output" "$output"
 }
-
-
-
-
-
-function test_mass_addition2 {
-	
-	read -d '' code <<"EOF"
-#include <stdio.h>
-#include <unistd.h>
-#include <time.h>
-#include "../thpool.h"
-
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int sum=0;
-
-void add_one() {
-	pthread_mutex_lock(&mutex);
-	sum ++;
-	pthread_mutex_unlock(&mutex);
-}
-
-int main(){
-
-	thpool_t* threadpool;
-	threadpool = thpool_init(1000);
-	
-	int n;
-	for (n=0; n<100; n++){
-		thpool_add_work(threadpool, (void*)add_one, NULL);
-	}
-	
-	thpool_wait(threadpool);
-	
-	printf("%d", sum);
-
-	return 0;
-}
-EOF
-
-	echo "Adding up to 100 with 1000 threads"
-	echo "$code" > _test_.c
-	gcc _test_.c ../thpool.c -pthread -o test
-	output=$(./test 2>&1 /dev/null)
-	if [ "$output" == "100" ]; then
-		return
-	fi
-	err "Expected 100 but got $output" "$output"
-}
-
-
-
-function test_mass_addition3 {
-	
-	read -d '' code <<"EOF"
-#include <stdio.h>
-#include <unistd.h>
-#include <time.h>
-#include "../thpool.h"
-
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int sum=0;
-
-void add_one() {
-	pthread_mutex_lock(&mutex);
-	sum ++;
-	pthread_mutex_unlock(&mutex);
-}
-
-int main(){
-
-	thpool_t* threadpool;
-	threadpool = thpool_init(1000);
-	
-	int n;
-	for (n=0; n<100000; n++){
-		thpool_add_work(threadpool, (void*)add_one, NULL);
-	}
-	
-	thpool_wait(threadpool);
-	
-	printf("%d", sum);
-
-	return 0;
-}
-EOF
-
-	echo "Adding up to 100000 with 1000 threads"
-	echo "$code" > _test_.c
-	gcc _test_.c ../thpool.c -pthread -o test
-	output=$(./test 2>&1 /dev/null)
-	if [ "$output" == "100000" ]; then
-		return
-	fi
-	err "Expected 100000 but got $output" "$output"
-}
-
 
 
 # Run tests
-test_mass_addition
-test_mass_addition2
-test_mass_addition3
+test_mass_addition 100 4
+test_mass_addition 100 1000
+test_mass_addition 100000 1000
 
 echo "No errors"

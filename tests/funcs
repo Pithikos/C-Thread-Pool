@@ -1,0 +1,33 @@
+#! /bin/bash
+
+#
+# This file should be included by other shell scripts that
+# want to use any of the functions
+#
+
+
+function needle { #needle #haystack
+	python -c "import re; print(re.search(r'$1', '$2').group(0))"
+	if (( $? != 0 )); then
+		msg="Python script error"
+		err "$msg" "$msg"
+	fi
+}
+
+
+function extract_num { #needle with number #haystack
+	string=$(needle "$1" "$2")
+	needle "[0-9]*" "$string"
+	if (( $? != 0 )); then
+		msg="Python script error"
+		err "$msg" "$msg"
+	fi
+}
+
+
+function err { #string #log
+	echo "------------------- ERROR ------------------------"
+	echo "$1"
+	echo "$2" >> memleaks.log
+	exit 1
+}

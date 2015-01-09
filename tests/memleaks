@@ -5,97 +5,23 @@
 # valgrind is used so make sure you have it installed
 #
 
-
-
-# --------------------------- Generic ----------------------------------
-
-function needle { #needle #haystack
-	python -c "import re; print(re.search(r'$1', '$2').group(0))"
-	if (( $? != 0 )); then
-		err "Python script error"
-	fi
-}
-function extract_num { #needle with number #haystack
-	string=$(needle "$1" "$2")
-	needle "[0-9]*" "$string"
-	if (( $? != 0 )); then
-		err "Python script error"
-	fi
-}
-function err { #string #log
-	echo "------------------- ERROR ------------------------"
-	echo "$1"
-	echo "$2" >> memleaks.log
-	exit 1
-}
-
-
-
-
+. funcs
 
 
 # ---------------------------- Tests -----------------------------------
 
 
-function test_single_thread_alloc {
-	
-	read -d '' code <<"EOF"
-#include <stdio.h>
-#include <unistd.h>
-#include <time.h>
-#include "../thpool.h"
-
-int main(){
-
-	thpool_t* threadpool;
-	threadpool = thpool_init(1);
-	thpool_destroy(threadpool);
-
-	return 0;
-}
-EOF
-	
-	echo "Testing single thread creation and destruction in pool"
-	echo "$code" > _test_.c
-	gcc _test_.c ../thpool.c -pthread -o test
-	output=$(valgrind --leak-check=full --track-origins=yes ./test 2>&1 /dev/null)
+function test_thread_free { #threads
+	echo "Testing creation and destruction of threads(=$1)"
+	gcc src/no_work.c ../thpool.c -pthread -o test
+	output=$(valgrind --leak-check=full --track-origins=yes ./test "$1" 2>&1 > /dev/null)
 	heap_usage=$(echo "$output" | grep "total heap usage")
 	allocs=$(extract_num "[0-9]* allocs" "$heap_usage")
 	frees=$(extract_num "[0-9]* frees" "$heap_usage")
-	if [ "$allocs" == "$frees" ]; then
-		return
+	if (( "$allocs" == 0 )); then
+		err "Allocated 0 times. Something is wrong.." "$output"
 	fi
-	err "Allocated $allocs times but freed only $frees" "$output"
-}
-
-
-function test_many_thread_allocs {
-	
-	read -d '' code <<"EOF"
-#include <stdio.h>
-#include <unistd.h>
-#include <time.h>
-#include "../thpool.h"
-
-int main(){
-
-	thpool_t* threadpool;
-	threadpool = thpool_init(4);  // VALGRIND SPENDS 1 SEC TO KILL EACH THREAD
-	                              // SO KEEP THIS LOW
-	thpool_destroy(threadpool);
-
-	return 0;
-}
-EOF
-	
-	echo "Testing multiple threads creation and destruction in pool (est  ~4secs)"
-	echo "$code" > _test_.c
-	gcc _test_.c ../thpool.c -pthread -o test
-	output=$(valgrind --leak-check=full --track-origins=yes ./test 2>&1 /dev/null)
-	heap_usage=$(echo "$output" | grep "total heap usage")
-	allocs=$(extract_num "[0-9]* allocs" "$heap_usage")
-	frees=$(extract_num "[0-9]* frees" "$heap_usage")
-	if [ "$allocs" == "$frees" ]; then
+	if (( "$allocs" == "$frees" )); then
 		return
 	fi
 	err "Allocated $allocs times but freed only $frees" "$output"
@@ -103,44 +29,33 @@ EOF
 
 
 # This is the same with test_many_thread_allocs but multiplied
-function test_many_thread_allocs_multi {
-
-	read -d '' code <<"EOF"
-#include <stdio.h>
-#include <unistd.h>
-#include <time.h>
-#include "../thpool.h"
-
-int main(){
-
-	thpool_t* threadpool;
-	threadpool = thpool_init(4);  // VALGRIND SPENDS 1 SEC TO KILL EACH THREAD
-	                              // SO KEEP THIS LOW
-	thpool_destroy(threadpool);
-
-	return 0;
-}
-EOF
-
-	echo "Testing multiple threads creation and destruction in pool (est ~40secs)"
-	echo "$code" > _test_.c
-	gcc _test_.c ../thpool.c -pthread -o test
-	for i in {1..10}; do
-		output=$(valgrind --leak-check=full --track-origins=yes ./test 2>&1 /dev/null)
+function test_thread_free_multi { #threads #times
+	echo "Testing multiple threads creation and destruction in pool (this can take a while)"
+	gcc src/no_work.c ../thpool.c -pthread -o test
+	for ((i = 1; i <= $1; i++)); do
+		output=$(valgrind --leak-check=full --track-origins=yes ./test "$1" 2>&1 > /dev/null)
 		heap_usage=$(echo "$output" | grep "total heap usage")
 		allocs=$(extract_num "[0-9]* allocs" "$heap_usage")
 		frees=$(extract_num "[0-9]* frees" "$heap_usage")
-		if [ "$allocs" != "$frees" ]; then
+		if (( "$allocs" == 0 )); then
+			err "Allocated 0 times. Something is wrong.." "$output"
+		fi
+		if (( "$allocs" != "$frees" )); then
 			err "Allocated $allocs times but freed only $frees" "$output"
 		fi
+		echo "Allocs: $allocs    Frees: $frees"
 	done
 }
 
 
 
 # Run tests
-test_single_thread_alloc
-test_many_thread_allocs
-test_many_thread_allocs_multi
+test_thread_free 1
+test_thread_free 2
+test_thread_free 4
+test_thread_free 8
+test_thread_free 1
+test_thread_free 100
+test_thread_free_multi 4 20
 
 echo "No memory leaks"
