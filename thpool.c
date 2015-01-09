@@ -68,13 +68,13 @@ thpool_t* thpool_init(int threadsN){
 	int n;
 	for (n=0; n<threadsN; n++){
 		
-		//thread_init(thpool, &thpool->threads[n], n);
-		//printf("Created thread %d in pool \n", n);
-		thpool->threads[n] = malloc(sizeof(thread_t));
-		thpool->threads[n]->thpool = thpool;
-		thpool->threads[n]->id = n;
-		pthread_create(&thpool->threads[n]->pthread, NULL, (void *)thread_do, thpool->threads[n]);
-		pthread_detach(thpool->threads[n]->pthread);
+		thread_init(thpool, &thpool->threads[n], n);
+		printf("Created thread %d in pool \n", n);
+		//thpool->threads[n] = malloc(sizeof(thread_t));
+		//thpool->threads[n]->thpool = thpool;
+		//thpool->threads[n]->id = n;
+		//pthread_create(&thpool->threads[n]->pthread, NULL, (void *)thread_do, thpool->threads[n]);
+		//pthread_detach(thpool->threads[n]->pthread);
 			
 		
 	}
@@ -120,7 +120,7 @@ void thpool_wait(thpool_t* thpool){
 /* Destroy the threadpool */
 void thpool_destroy(thpool_t* thpool){
 	
-	int threads_total = thpool->threads_alive;
+	volatile int threads_total = thpool->threads_alive;
 
 	/* End each thread 's infinite loop */
 	threads_keepalive = 0;
@@ -131,14 +131,14 @@ void thpool_destroy(thpool_t* thpool){
 	double tpassed;
 	time (&start);
 	while (tpassed < TIMEOUT && thpool->threads_alive){
-		bsem_post(thpool->jobqueue->has_jobs);
+		bsem_post_to_all(thpool->jobqueue->has_jobs);
 		time (&end);
 		tpassed = difftime(end,start);
 	}
 	
 	/* Poll remaining threads */
 	while (thpool->threads_alive){
-		bsem_post(thpool->jobqueue->has_jobs);
+		bsem_post_to_all(thpool->jobqueue->has_jobs);
 		sleep(1);
 	}
 
@@ -217,10 +217,6 @@ static void* thread_do(thread_t* thread){
 	thpool->threads_alive += 1;
 	pthread_mutex_unlock(&thpool->thcount_lock);
 
-	//printf("Thread (%u) initialized init?: %d\n", (int)pthread_self(), (*thread).initialized);
-	//printf("Thread (%u) init adr: %p\n", (int)pthread_self(), &(*thread).initialized);
-	//printf("Thread (%u) id: %d\n", (int)pthread_self(), (*thread).id);
-	
 	while(threads_keepalive){
 
 		bsem_wait(thpool->jobqueue->has_jobs);
@@ -246,8 +242,7 @@ static void* thread_do(thread_t* thread){
 	pthread_mutex_lock(&thpool->thcount_lock);
 	thpool->threads_alive --;
 	pthread_mutex_unlock(&thpool->thcount_lock);
-	printf("Thread %d exiting\n", (*thread).id);
-	//pthread_exit(NULL);
+
 	return NULL;
 }
 
