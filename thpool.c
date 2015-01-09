@@ -25,8 +25,6 @@
 static volatile int threads_keepalive;
 static volatile int threads_on_hold;
 
-static volatile int return_value;
-
 
 
 
