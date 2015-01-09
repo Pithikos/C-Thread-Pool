@@ -11,10 +11,16 @@
 
 function needle { #needle #haystack
 	python -c "import re; print(re.search(r'$1', '$2').group(0))"
+	if (( $? != 0 )); then
+		err "Python script error"
+	fi
 }
 function extract_num { #needle with number #haystack
 	string=$(needle "$1" "$2")
 	needle "[0-9]*" "$string"
+	if (( $? != 0 )); then
+		err "Python script error"
+	fi
 }
 function err { #string #log
 	echo "------------------- ERROR ------------------------"
