@@ -30,7 +30,8 @@ function test_thread_free { #threads
 
 # This is the same with test_many_thread_allocs but multiplied
 function test_thread_free_multi { #threads #times
-	echo "Testing multiple threads creation and destruction in pool (this can take a while)"
+	echo "Testing multiple threads creation and destruction in pool(threads=$1 times=$2)"
+	echo "(this might take a while)"
 	gcc src/no_work.c ../thpool.c -pthread -o test
 	for ((i = 1; i <= $1; i++)); do
 		output=$(valgrind --leak-check=full --track-origins=yes ./test "$1" 2>&1 > /dev/null)
@@ -55,7 +56,8 @@ test_thread_free 2
 test_thread_free 4
 test_thread_free 8
 test_thread_free 1
-test_thread_free 100
+test_thread_free 20
 test_thread_free_multi 4 20
+test_thread_free_multi 3 1000
 
 echo "No memory leaks"
