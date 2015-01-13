@@ -33,7 +33,7 @@ function test_thread_free_multi { #threads #times
 	echo "Testing multiple threads creation and destruction in pool(threads=$1 times=$2)"
 	echo "(this might take a while)"
 	gcc src/no_work.c ../thpool.c -pthread -o test
-	for ((i = 1; i <= $1; i++)); do
+	for ((i = 1; i <= $2; i++)); do
 		output=$(valgrind --leak-check=full --track-origins=yes ./test "$1" 2>&1 > /dev/null)
 		heap_usage=$(echo "$output" | grep "total heap usage")
 		allocs=$(extract_num "[0-9]* allocs" "$heap_usage")
