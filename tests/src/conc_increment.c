@@ -8,7 +8,7 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 int sum=0;
 
 
-void add_one() {
+void increment() {
 	pthread_mutex_lock(&mutex);
 	sum ++;
 	pthread_mutex_unlock(&mutex);
@@ -25,15 +25,15 @@ int main(int argc, char *argv[]){
 	int jobs    = strtol(argv[1], &p, 10);
 	int threads = strtol(argv[2], &p, 10);
 
-	thpool_t* threadpool;
-	threadpool = thpool_init(threads);
+	thpool_t* thpool;
+	thpool = thpool_init(threads);
 	
 	int n;
 	for (n=0; n<jobs; n++){
-		thpool_add_work(threadpool, (void*)add_one, NULL);
+		thpool_add_work(thpool, (void*)increment, NULL);
 	}
 	
-	thpool_wait(threadpool);
+	thpool_wait(thpool);
 
 	printf("%d\n", sum);
 
