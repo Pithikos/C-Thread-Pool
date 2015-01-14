@@ -99,7 +99,6 @@ typedef struct jobqueue_t{
 /* Thread */
 typedef struct thread_t{
 	int       id;                       /* friendly id                */
-	int       initialized;              /* binary to solve race conds */
 	pthread_t pthread;                  /* pointer to actual thread   */
 	struct thpool_t* thpool;            /* access to thpool           */
 } thread_t;

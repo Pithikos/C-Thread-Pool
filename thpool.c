@@ -68,21 +68,13 @@ thpool_t* thpool_init(int threadsN){
 	/* Thread init */
 	int n;
 	for (n=0; n<threadsN; n++){
-		
 		thread_init(thpool, &thpool->threads[n], n);
 		printf("Created thread %d in pool \n", n);
-		//thpool->threads[n] = malloc(sizeof(thread_t));
-		//thpool->threads[n]->thpool = thpool;
-		//thpool->threads[n]->id = n;
-		//pthread_create(&thpool->threads[n]->pthread, NULL, (void *)thread_do, thpool->threads[n]);
-		//pthread_detach(thpool->threads[n]->pthread);
-			
-		
 	}
 	
 	/* Wait for threads to initialize */
 	while (thpool->threads_alive != threadsN) {}
-	
+
 	return thpool;
 }
 
