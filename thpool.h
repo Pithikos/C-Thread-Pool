@@ -215,7 +215,7 @@ void thpool_destroy(thpool_t* thpool);
  * @param id            id to be given to thread
  * 
  */
-void thread_init(thpool_t* thpool, thread_t** thread, int id);
+static void thread_init(thpool_t* thpool, thread_t** thread, int id);
 
 
 /**

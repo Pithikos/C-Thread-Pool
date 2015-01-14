@@ -169,7 +169,7 @@ void thpool_resume(thpool_t* thpool) {
 
 /* ============================ THREAD ============================== */
 
-void thread_init (thpool_t *thpool, thread_t **thread, int id){
+static void thread_init (thpool_t *thpool, thread_t **thread, int id){
 	
 	*thread = (thread_t*)malloc(sizeof(thread_t));
 	if (thread == NULL){
