@@ -274,14 +274,13 @@ static int jobqueue_init(thpool_t* thpool){
 /* Clear queue */
 static void jobqueue_clear(thpool_t* thpool){
 
-	job_t* job;
 	while(thpool->jobqueue->len){
 		free(jobqueue_pull(thpool));
 	}
 	
 	thpool->jobqueue->front = NULL;
 	thpool->jobqueue->rear  = NULL;
-	thpool->jobqueue->has_jobs->v = 0;
+	bsem_reset(thpool->jobqueue->has_jobs);
 	thpool->jobqueue->len = 0;
 	
 }
