@@ -30,6 +30,77 @@ static volatile int threads_on_hold;
 
 
 
+/* ========================== STRUCTURES ============================ */
+
+
+/* Binary semaphore */
+typedef struct bsem_t {
+	pthread_mutex_t mutex;
+	pthread_cond_t   cond;
+	int v;
+} bsem_t;
+
+
+/* Job */
+typedef struct job_t{
+	void*  (*function)(void* arg);       /* function pointer          */
+	void*          arg;                  /* function's argument       */
+	struct job_t*  prev;                 /* pointer to previous job   */
+} job_t;
+
+
+/* Job queue */
+typedef struct jobqueue_t{
+	pthread_mutex_t  rwmutex;            /* used for queue r/w access */
+	job_t           *front;              /* pointer to front of queue */
+	job_t           *rear;               /* pointer to rear  of queue */
+	bsem_t          *has_jobs;           /* flag as binary semaphore  */
+	int              len;                /* number of jobs in queue   */
+} jobqueue_t;
+
+
+/* Thread */
+typedef struct thread_t{
+	int       id;                       /* friendly id                */
+	pthread_t pthread;                  /* pointer to actual thread   */
+	struct thpool_t* thpool;            /* access to thpool           */
+} thread_t;
+
+/* Threadpool */
+typedef struct thpool_t{
+	thread_t**       threads;            /* pointer to threads        */
+	int              threads_alive;      /* threads currently alive   */
+	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
+	jobqueue_t*      jobqueue;           /* pointer to the job queue  */    
+} thpool_t;
+
+
+
+
+
+/* ========================== PROTOTYPES ============================ */
+
+static void thread_init(thpool_t* thpool, thread_t** thread, int id);
+static void* thread_do(thread_t* thread);
+static void thread_hold();
+static void thread_destroy(thread_t* thread);
+
+static int jobqueue_init(thpool_t* thpool);
+static void jobqueue_clear(thpool_t* thpool);
+static void jobqueue_push(thpool_t* thpool, job_t* newjob);
+static job_t* jobqueue_pull(thpool_t* thpool);
+static void jobqueue_destroy(thpool_t* thpool);
+
+static void bsem_init(bsem_t *bsem, int value);
+static void bsem_reset(bsem_t *bsem);
+static void bsem_post(bsem_t *bsem);
+static void bsem_post_all(bsem_t *bsem);
+static void bsem_wait(bsem_t *bsem);
+
+
+
+
+
 /* ========================== THREADPOOL ============================ */
 
 /* Initialise thread pool */
@@ -169,6 +240,19 @@ void thpool_resume(thpool_t* thpool) {
 
 /* ============================ THREAD ============================== */
 
+
+/**
+ * @brief Initialize a thread in the thread pool
+ * 
+ * Will initialize a new thread for the given threadpool and give the
+ * the thread an ID
+ * 
+ * Notice also that the thread's id is not populated automatically.
+ * 
+ * @param thread        address to the pointer of the thread to be created
+ * @param id            id to be given to the thread
+ * 
+ */
 static void thread_init (thpool_t *thpool, thread_t **thread, int id){
 	
 	*thread = (thread_t*)malloc(sizeof(thread_t));
@@ -185,6 +269,11 @@ static void thread_init (thpool_t *thpool, thread_t **thread, int id){
 	
 }
 
+
+/**
+ * @brief Sets the calling thread on hold until threads_on_hold is set to 1
+ * @param thread
+ */
 static void thread_hold () {
 	threads_on_hold = 1;
 	while (threads_on_hold){
@@ -193,6 +282,15 @@ static void thread_hold () {
 }
 
 
+/**
+* @brief What each thread is doing
+* 
+* In principle this is an endless loop. The only time this loop gets interuppted is once
+* thpool_destroy() is invoked or the program exits.
+* 
+* @param  thread        thread that will run this function
+* @return nothing
+*/
 static void* thread_do(thread_t* thread){
 
 	/* Assure all threads have been created before starting serving */
@@ -240,6 +338,10 @@ static void* thread_do(thread_t* thread){
 }
 
 
+/**
+ * @brief Frees a thread
+ * @param  thread
+ */
 static void thread_destroy (thread_t* thread){
 	//puts("Destroying thread");
 	free(thread);
@@ -250,7 +352,11 @@ static void thread_destroy (thread_t* thread){
 /* ============================ JOB QUEUE =========================== */
 
 
-/* Initialise queue */
+/**
+ * @brief  Initialize queue
+ * @return 0 on success,
+ *        -1 on memory allocation error
+ */
 static int jobqueue_init(thpool_t* thpool){
 	thpool->jobqueue=(jobqueue_t*)malloc(sizeof(jobqueue_t));
 	if (thpool->jobqueue==NULL){
@@ -263,7 +369,9 @@ static int jobqueue_init(thpool_t* thpool){
 }
 
 
-/* Clear queue */
+/**
+ * @brief  Clears the queue
+ */
 static void jobqueue_clear(thpool_t* thpool){
 
 	while(thpool->jobqueue->len){
@@ -278,7 +386,17 @@ static void jobqueue_clear(thpool_t* thpool){
 }
 
 
-/* Add job to queue */
+/**
+ * @brief Add job to queue
+ * 
+ * A new job will be added to the queue. The new job MUST be allocated
+ * before passed to this function or else other functions like jobqueue_empty()
+ * will be broken.
+ * 
+ * CALLER MUST HOLD A MUTEX
+ * 
+ * @param pointer to the new (allocated) job
+ */
 static void jobqueue_push(thpool_t* thpool, job_t* newjob){ /* remember that job prev and next point to NULL */
 
 	newjob->prev = NULL;
@@ -300,7 +418,17 @@ static void jobqueue_push(thpool_t* thpool, job_t* newjob){ /* remember that job
 }
 
 
-/* Get first element from queue */
+/**
+ * @brief Get first job from queue(removes it from queue)
+ * 
+ * This does not free allocated memory so be sure to have peeked() \n
+ * before invoking this as else there will result lost memory pointers.
+ * 
+ * CALLER MUST HOLD A MUTEX
+ * 
+ * @return point to job on success,
+ *         NULL if there is no job in queue
+ */
 static job_t* jobqueue_pull(thpool_t* thpool){
 
 	job_t* job;
@@ -331,7 +459,14 @@ static job_t* jobqueue_pull(thpool_t* thpool){
 }
 
 
-/* Remove and deallocate all jobs in queue */
+/**
+ * @brief Remove and deallocate all jobs in queue
+ * 
+ * This function will deallocate all jobs in the queue and set the
+ * jobqueue to its initialization values, thus tail and head pointing
+ * to NULL and amount of jobs equal to 0.
+ * 
+ * */
 static void jobqueue_destroy(thpool_t* thpool){
 	jobqueue_clear(thpool);
 	free(thpool->jobqueue->has_jobs);
@@ -344,7 +479,9 @@ static void jobqueue_destroy(thpool_t* thpool){
 /* ======================== SYNCHRONISATION ========================= */
 
 
-/* Binary semaphore init */
+/**
+ * @brief Inits semaphore to given value (1 or 0)
+ * */
 static void bsem_init(bsem_t *bsem, int value) {
 	if (value < 0 || value > 1) {
 		printf("ERROR: bsem_init(): Binary semaphore can take only values 1 or 0");
@@ -354,13 +491,17 @@ static void bsem_init(bsem_t *bsem, int value) {
 }
 
 
-/* Binary semaphore reset */
+/**
+ * @brief Resets semaphore to 0
+ * */
 static void bsem_reset(bsem_t *bsem) {
 	bsem_init(bsem, 0);
 }
 
 
-/* Binary semaphore post */
+/**
+ * @brief Sets semaphore to one and notifies at least one thread
+ * */
 static void bsem_post(bsem_t *bsem) {
 	pthread_mutex_lock(&bsem->mutex);
 	bsem->v = 1;
@@ -369,7 +510,9 @@ static void bsem_post(bsem_t *bsem) {
 }
 
 
-/* Binary semaphore post */
+/**
+ * @brief Sets semaphore to one and notifies all threads
+ * */
 static void bsem_post_all(bsem_t *bsem) {
 	pthread_mutex_lock(&bsem->mutex);
 	bsem->v = 1;
@@ -378,7 +521,9 @@ static void bsem_post_all(bsem_t *bsem) {
 }
 
 
-/* Binary semaphore wait */
+/**
+ * @brief Waits on semaphore until semaphore has value 0
+ * */
 static void bsem_wait(bsem_t *bsem) {
 	pthread_mutex_lock(&bsem->mutex);
 	while (bsem->v != 1) {
