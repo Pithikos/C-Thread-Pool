@@ -1,11 +1,13 @@
 ````
 Author:  Johan Hanssen Seferidis
-Created: 2011-08-12
+License: MIT
 ````
 
+## thpool v2
 
-Compiling
-========================================================================
+
+
+## Compiling
 
 The library is not precompiled so you have to compile it with your project. The thread pool
 uses POSIX threads so if you compile with gcc you have to use the flag -pthread like this:
@@ -18,8 +20,7 @@ Then run the executable like this:
     ./test
 
 
-Usage
-========================================================================
+##Usage
 
 1. Make a thread pool: `thpool_t* thpool;`
 2. Initialise the thread pool with number of threads(workers) you want: `thpool=thpool_init(4);`
@@ -31,8 +32,7 @@ you can use `thpool_wait(thpool);`. If you want to destroy the pool you can use
 `thpool_destroy(thpool);`.
 
 
-Threadpool Interface
-========================================================================
+##Threadpool Interface
 
 ````
 NAME

@@ -16,15 +16,13 @@
 #include "thpool.h"
 
 
-/* Some arbitrary task 1 */
 void task1(){
-	printf("# Thread %u working on task1\n", (int)pthread_self());
+	printf("Thread #%u working on task1\n", (int)pthread_self());
 }
 
 
-/* Some arbitrary task 2 */
 void task2(){
-	printf("# Thread %u working on task2\n", (int)pthread_self());
+	printf("Thread #%u working on task2\n", (int)pthread_self());
 }
 
 
