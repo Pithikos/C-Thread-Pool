@@ -12,9 +12,9 @@ int main(int argc, char *argv[]){
 		puts("This testfile needs excactly one arguments");
 		exit(1);
 	}
-	int threads = strtol(argv[1], &p, 10);
+	int num_threads = strtol(argv[1], &p, 10);
 
-	thpool threadpool = thpool_init(threads);
+	thpool threadpool = thpool_init(num_threads);
 	thpool_destroy(threadpool);
 
 	sleep(1); // Sometimes main exits before thpool_destroy finished 100%
