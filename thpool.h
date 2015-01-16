@@ -45,16 +45,20 @@ extern thpool thpool_init(int num_threads);
  * @param  thpool        threadpool to which the work will be added
  * @param  function      function to add as work
  * @param  argument      single argument to passed function
- * @return int
+ * @return nothing
  */
 extern int thpool_add_work(thpool, void *(*function)(void*), void* arg_p);
 
 
 /**
- * @brief Wait for all jobs in job queue to finish
+ * @brief Wait for all queued jobs to finish
  * 
- * Will wait for all jobs in the queue to finish. Polling is used for this.
+ * Will wait for all jobs - both queued and currently running to finish.
+ * Once the queue is empty and all work has completed, the calling thread
+ * (probably the main program) will continue.
  * 
+ * Polling is used in wait. By default the polling interval is one second.
+ *
  * @param  threadpool to wait for
  * @return nothing
  */
@@ -79,7 +83,7 @@ extern void thpool_pause(thpool);
 /**
  * @brief Unpauses all threads if they are paused
  * 
- * @param  threadpool where the threads should be unpaused
+ * @param thpool     the threadpool where the threads should be unpaused
  * @return nothing
  */
 extern void thpool_resume(thpool);
@@ -91,7 +95,7 @@ extern void thpool_resume(thpool);
  * This will wait for the currently active threads to finish and then 'kill'
  * the whole threadpool to free up memory.
  * 
- * @param threadpool a pointer to the threadpool structure you want to destroy
+ * @param thpool     the threadpool to destroy
  * @return nothing
  */
 extern void thpool_destroy(thpool);
