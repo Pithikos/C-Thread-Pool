@@ -60,5 +60,6 @@ test_thread_free 1
 test_thread_free 20
 test_thread_free_multi 4 20
 test_thread_free_multi 3 1000
+test_thread_free_multi 100 100
 
 echo "No memory leaks"

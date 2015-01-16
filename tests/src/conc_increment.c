@@ -22,18 +22,17 @@ int main(int argc, char *argv[]){
 		puts("This testfile needs excactly two arguments");
 		exit(1);
 	}
-	int jobs    = strtol(argv[1], &p, 10);
-	int threads = strtol(argv[2], &p, 10);
+	int num_jobs    = strtol(argv[1], &p, 10);
+	int num_threads = strtol(argv[2], &p, 10);
 
-	thpool_t* thpool;
-	thpool = thpool_init(threads);
+	thpool threadpool = thpool_init(num_threads);
 	
 	int n;
-	for (n=0; n<jobs; n++){
-		thpool_add_work(thpool, (void*)increment, NULL);
+	for (n=0; n<num_jobs; n++){
+		thpool_add_work(threadpool, (void*)increment, NULL);
 	}
 	
-	thpool_wait(thpool);
+	thpool_wait(threadpool);
 
 	printf("%d\n", sum);
 
