@@ -13,9 +13,8 @@
 #include <semaphore.h>
 
 
-/* thpool is a pointer to a thpool_t data structure */
-typedef struct thpool_t* thpool;
-
+/* thpool is a pointer to a thpool data structure */
+typedef struct thpool_* thpool;
 
 
 /* =========================== FUNCTIONS ============================ */
@@ -27,11 +26,11 @@ typedef struct thpool_t* thpool;
  * Initializes a threadpool. This function will not return untill all
  * threads have initialized successfully.
  * 
- * @param  threadsN    number of threads to be created in the threadpool
- * @return thpool      pointer to created threadpool on success,
- *                     pointer to NULL on error
+ * @param  num_threads   number of threads to be created in the threadpool
+ * @return thpool        pointer to created threadpool on success,
+ *                       pointer to NULL on error
  */
-extern thpool* thpool_init(int threadsN);
+extern thpool thpool_init(int num_threads);
 
 
 /**
@@ -43,9 +42,9 @@ extern thpool* thpool_init(int threadsN);
  * 
  * NOTICE: You have to cast both the function and argument to not get warnings.
  * 
- * @param  thpool      threadpool to which the work will be added
- * @param  function    function to add as work
- * @param  argument to the above function
+ * @param  thpool        threadpool to which the work will be added
+ * @param  function      function to add as work
+ * @param  argument      single argument to passed function
  * @return int
  */
 extern int thpool_add_work(thpool, void *(*function)(void*), void* arg_p);
