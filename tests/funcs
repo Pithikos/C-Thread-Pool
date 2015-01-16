@@ -28,6 +28,6 @@ function extract_num { #needle with number #haystack
 function err { #string #log
 	echo "------------------- ERROR ------------------------"
 	echo "$1"
-	echo "$2" >> memleaks.log
+	echo "$2" >> error.log
 	exit 1
 }
