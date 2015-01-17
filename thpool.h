@@ -12,7 +12,7 @@
 typedef struct thpool_* threadpool;
 
 
-/* =========================== FUNCTIONS ============================ */
+/* =================================== API ======================================= */
 
 
 /**
@@ -24,8 +24,8 @@ typedef struct thpool_* threadpool;
  * @example
  * 
  *    ..
- *    threadpool thpool;                        //First we declare a threadpool
- *    thpool = thpool_init(4);                  //then we initialize it to 4 threads
+ *    threadpool thpool;                     //First we declare a threadpool
+ *    thpool = thpool_init(4);               //then we initialize it to 4 threads
  *    ..
  * 
  * @param  num_threads   number of threads to be created in the threadpool
