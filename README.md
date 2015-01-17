@@ -47,7 +47,7 @@ you can use `thpool_wait(thpool);`. If you want to destroy the pool you can use
 
 ##API
 
-For a deeper look into the documentation check in the `thpool.h` file. Also notice that to use **any** of the API you have to **include the thpool.h**.
+For a deeper look into the documentation check in the `thpool.h` file. Below is a fast practical overview.
 
 | Function example                | Description                                                         |
 |---------------------------------|---------------------------------------------------------------------|
