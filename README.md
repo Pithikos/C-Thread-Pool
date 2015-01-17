@@ -3,7 +3,7 @@
 This is a minimal but fully functional threadpool implementation.
 
   * ANCI C and POSIX compliant
-  * Number of threads can be chosen on initialisation
+  * Number of threads can be chosen on initialization
   * Minimal interface
   * Full documentation
 
