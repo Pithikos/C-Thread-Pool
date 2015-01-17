@@ -1,4 +1,5 @@
-##Why not use `pthread_exit()`
+
+###Why not use pthread_exit()
 `thread_do` used to use pthread_exit(). However that resulted in
 hard times of testing for memory leaks. The reason is that on pthread_exit()
 not all memory is freed bt pthread (probably for future threads or false
@@ -8,7 +9,7 @@ is used.
 Interestingly using `pthread_exit()` results in much more memory being allocated.
 
 
-##Why `sleep()` after `thpool_destroy()`?
+###Why sleep() after thpool_destroy()?
 This is needed only in the tests. The reason is that if you call thpool_destroy
 and then exit immedietely, maybe the program will exit before all the threads
 had the time to deallocate. In that way it is impossible to check for memory
