@@ -3,16 +3,27 @@ Author:  Johan Hanssen Seferidis
 License: MIT
 ````
 
+  * ANCI C and POSIX compliant
+  * Number of threads can be chosen on initialisation
+  * Minimal interface
+  * Full documentation
+
+
 ## thpool v2
 
+This is an updated and heavily refactored version of my original threadpool. The main points taken into consideration into this new version are the below:
+
+  * Synchronisation control from the user
+  * Thorough testing for memory leaks and race conditions
+  * Cleaner and more opaque API
 
 
 ## Compiling
 
 The library is not precompiled so you have to compile it with your project. The thread pool
-uses POSIX threads so if you compile with gcc you have to use the flag -pthread like this:
+uses POSIX threads so if you compile with gcc on Linux you have to use the flag `-pthread` like this:
 
-    gcc main.c thpool.c -pthread -o test
+    gcc example.c thpool.c -pthread -o test
 
 
 Then run the executable like this:
@@ -22,9 +33,9 @@ Then run the executable like this:
 
 ##Usage
 
-1. Make a thread pool: `thpool_t* thpool;`
-2. Initialise the thread pool with number of threads(workers) you want: `thpool=thpool_init(4);`
-3. Add work to the pool: `thpool_add_work(thpool, (void*)doSth, (void*)arg);`
+1. Include the header: ``#include "thpool.h"`
+2. Make a thread pool with 4 threads: `thpool mythreadpool = thpool_init(4);`
+3. Add work to the pool: `thpool_add_work(mythreadpool, (void*)doSth, (void*)arg);`
 
 The workers will start their work automatically as fast as there is new work
 added. If you want to wait for all added work to be finished before continuing
@@ -32,7 +43,19 @@ you can use `thpool_wait(thpool);`. If you want to destroy the pool you can use
 `thpool_destroy(thpool);`.
 
 
+
 ##Threadpool Interface
+
+For a deeper look into the documentation check in the `thpool.h` file. Also notice that to use any of the API **you have to include the thpool.h**.
+
+| Function example                                                 | Description                                                                                                                                        |
+|------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| thpool_init(4)                                                   | Will return a new threadpool with 4 threads.                                                                                                       |
+| thpool_add_work(thpool, void *(*function_p)(void*), void* arg_p) | Adds work to the threadpool. Work is simply a function. You can pass a single argument to the function if you wish. If not, NULL should be passed. |
+| thpool_wait(thpool)                                              | Will wait for all jobs (both in queue and currently running) to finish.                                                                            |
+| thpool_destroy(thpool)                                           | This will destroy thpool. If jobs are currently being executed, then it will wait for them to finish before destroying the threadpool.             |
+
+
 
 ````
 NAME
