@@ -29,21 +29,21 @@ int main(int argc, char *argv[]){
 	}
 	int num_threads = strtol(argv[1], &p, 10);
 
-	thpool threadpool = thpool_init(num_threads);
+	threadpool thpool = thpool_init(num_threads);
 	
-	thpool_pause(threadpool);
+	thpool_pause(thpool);
 	
-	thpool_add_work(threadpool, (void*)sleep_4_secs, NULL);
-	thpool_add_work(threadpool, (void*)sleep_4_secs, NULL);
+	thpool_add_work(thpool, (void*)sleep_4_secs, NULL);
+	thpool_add_work(thpool, (void*)sleep_4_secs, NULL);
 	
 	sleep(3);
 	
-	thpool_resume(threadpool);
+	thpool_resume(thpool);
 	// If it works, then the threadpool starts working NOW
 	
 	sleep(2); // Give some time to threads to get the work
 	
-	thpool_destroy(threadpool); // Wait for work to finish
+	thpool_destroy(thpool); // Wait for work to finish
 
 	return 0;
 }
