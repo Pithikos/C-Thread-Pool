@@ -2,13 +2,12 @@
  * WHAT THIS EXAMPLE DOES
  * 
  * We create a pool of 4 threads and then add 40 tasks to the pool(20 task1 
- * functions and 20 task2 functions).
+ * functions and 20 task2 functions). task1 and task2 simply print which thread is running them.
  * 
- * task1 and task2 simply print which thread is running them.
- * 
- * As soon as we add the tasks to the pool, the threads will run them. One thread
- * may run x tasks in a row so if you see as output the same thread running several
- * tasks, it's not an error.
+ * As soon as we add the tasks to the pool, the threads will run them. It can happen that 
+ * you see a single thread running all the tasks (highly unlikely). It is up the OS to
+ * decide which thread will run what. So it is not an error of the thread pool but rather
+ * a decision of the OS.
  * 
  * */
 
@@ -38,7 +37,7 @@ int main(){
 		thpool_add_work(thpool, (void*)task2, NULL);
 	};
 
-    puts("Killing threadpool");
+	puts("Killing threadpool");
 	thpool_destroy(thpool);
 	
 	return 0;
