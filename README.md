@@ -8,7 +8,7 @@ The main highlights of the threadpool are:
   * Minimal interface
   * Full documentation
 
-The threadpool is under MIT license. Notice that this project took a considerable amount of work and sacrifice of my free time and the reason I give it for free even for commercial use is so they someday do the same for me (the little human). Cheers!
+The threadpool is under MIT license. Notice that this project took a considerable amount of work and sacrifice of my free time and the reason I give it for free (even for commercial use) is so when you become rich and wealthy you don't forget about us open-source creatures. Cheers!
 
 
 ## v2 updates
