@@ -22,8 +22,11 @@ typedef struct thpool_* threadpool;
  * threads have initialized successfully.
  * 
  * @example
- * threadpool thpool;                      //First we declare a threadpool
- * thpool = thpool_init(4);                  //then we initialize it to 4 threads
+ * 
+ *    ..
+ *    threadpool thpool;                        //First we declare a threadpool
+ *    thpool = thpool_init(4);                  //then we initialize it to 4 threads
+ *    ..
  * 
  * @param  num_threads   number of threads to be created in the threadpool
  * @return threadpool    created threadpool on success,
@@ -43,17 +46,16 @@ threadpool thpool_init(int num_threads);
  * 
  * @example
  * 
- * void print_num(int num){
- *    printf("%d\n", num);
- * }
+ *    void print_num(int num){
+ *       printf("%d\n", num);
+ *    }
  * 
- * int main() {
- *    threadpool thpool = thpool_init(4);
- *    int a = 10;
- *    thpool_add_work(thpool, (void*)print_num, (void*)a);
- *    thpool_wait(thpool);
- *    return 0;
- * }
+ *    int main() {
+ *       ..
+ *       int a = 10;
+ *       thpool_add_work(thpool, (void*)print_num, (void*)a);
+ *       ..
+ *    }
  * 
  * @param  threadpool    threadpool to which the work will be added
  * @param  function_p    pointer to function to add as work
@@ -73,15 +75,15 @@ int thpool_add_work(threadpool, void *(*function_p)(void*), void* arg_p);
  * Polling is used in wait. By default the polling interval is one second.
  *
  * @example
- * int main() {
- *    threadpool thpool1 = thpool_init(4);
+ * 
+ *    ..
+ *    threadpool thpool = thpool_init(4);
  *    ..
  *    // Add a bunch of work
  *    ..
  *    thpool_wait(thpool);
  *    puts("All added work has finished");
- *    return 0;
- * }
+ *    ..
  * 
  * @param threadpool     the threadpool to wait for
  * @return nothing
