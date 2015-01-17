@@ -1,6 +1,6 @@
 # C Thread Pool
 
-This is a minimal but fully functional threadpool that gives you control for most of the cases.
+This is a minimal but fully functional threadpool that should suffice for most if not all cases.
 The main highlights of the threadpool are:
 
   * ANCI C and POSIX compliant
