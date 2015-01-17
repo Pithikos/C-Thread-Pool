@@ -17,6 +17,7 @@ function test_mass_addition { #endsum #threads
 		return
 	fi
 	err "Expected $1 but got $output" "$output"
+	exit 1
 }
 
 
