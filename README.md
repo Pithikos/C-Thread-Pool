@@ -10,9 +10,9 @@ This is a minimal but fully functional threadpool implementation.
 The threadpool is under MIT license. Notice that this project took a considerable amount of work and sacrifice of my free time and the reason I give it for free (even for commercial use) is so when you become rich and wealthy you don't forget about us open-source creatures of the night. Cheers!
 
 
-## v2 updates
+## v2 Changes
 
-This is an updated and heavily refactored version of my original threadpool. The main points taken into consideration into this new version are:
+This is an updated and heavily refactored version of my original threadpool. The main things taken into consideration in this new version are:
 
   * Synchronisation control from the user (pause/resume/wait)
   * Thorough testing for memory leaks and race conditions
@@ -22,7 +22,7 @@ This is an updated and heavily refactored version of my original threadpool. The
 ## Compiling
 
 The library is not precompiled so you have to compile it with your project. The thread pool
-uses POSIX threads so if you compile with **gcc** on Linux you have to use the flag `-pthread` like this:
+uses POSIX threads so if you compile with gcc on Linux you have to use the flag `-pthread` like this:
 
     gcc example.c thpool.c -pthread -o example
 
@@ -35,11 +35,11 @@ Then run the executable like this:
 ##Basic usage
 
 1. Include the header in your source file: ``#include "thpool.h"`
-2. Make a thread pool with 4 threads: `threadpool thpool = thpool_init(4);`
+2. Create a thread pool with number of threads you want: `threadpool thpool = thpool_init(4);`
 3. Add work to the pool: `thpool_add_work(thpool, (void*)doSth, (void*)arg);`
 
-The workers will start their work automatically as fast as there is new work
-added. If you want to wait for all added work to be finished before continuing
+The workers(threads) will start their work automatically as fast as there is new work
+in the pool. If you want to wait for all added work to be finished before continuing
 you can use `thpool_wait(thpool);`. If you want to destroy the pool you can use
 `thpool_destroy(thpool);`.
 
