@@ -5,11 +5,7 @@
  **********************************/
 
 #ifndef _THPOOL_
-
 #define _THPOOL_
-
-#include <pthread.h>
-#include <semaphore.h>
 
 
 /* thpool is a pointer to a thpool data structure */
