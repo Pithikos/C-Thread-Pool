@@ -25,14 +25,14 @@ int main(int argc, char *argv[]){
 	int num_jobs    = strtol(argv[1], &p, 10);
 	int num_threads = strtol(argv[2], &p, 10);
 
-	thpool threadpool = thpool_init(num_threads);
+	threadpool thpool = thpool_init(num_threads);
 	
 	int n;
 	for (n=0; n<num_jobs; n++){
-		thpool_add_work(threadpool, (void*)increment, NULL);
+		thpool_add_work(thpool, (void*)increment, NULL);
 	}
 	
-	thpool_wait(threadpool);
+	thpool_wait(thpool);
 
 	printf("%d\n", sum);
 
