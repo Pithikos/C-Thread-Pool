@@ -14,7 +14,7 @@
 
 
 /* thpool is a pointer to a thpool data structure */
-typedef struct thpool_* thpool;
+typedef struct thpool_* threadpool;
 
 
 /* =========================== FUNCTIONS ============================ */
@@ -27,10 +27,10 @@ typedef struct thpool_* thpool;
  * threads have initialized successfully.
  * 
  * @param  num_threads   number of threads to be created in the threadpool
- * @return thpool        pointer to created threadpool on success,
- *                       pointer to NULL on error
+ * @return threadpool    created threadpool on success,
+ *                       NULL on error
  */
-extern thpool thpool_init(int num_threads);
+threadpool thpool_init(int num_threads);
 
 
 /**
@@ -42,12 +42,12 @@ extern thpool thpool_init(int num_threads);
  * 
  * NOTICE: You have to cast both the function and argument to not get warnings.
  * 
- * @param  thpool        threadpool to which the work will be added
- * @param  function      function to add as work
- * @param  argument      single argument to passed function
+ * @param  threadpool    threadpool to which the work will be added
+ * @param  function_p    pointer to function to add as work
+ * @param  arg_p         pointer to an argument
  * @return nothing
  */
-extern int thpool_add_work(thpool, void *(*function)(void*), void* arg_p);
+int thpool_add_work(threadpool, void *(*function_p)(void*), void* arg_p);
 
 
 /**
@@ -59,10 +59,10 @@ extern int thpool_add_work(thpool, void *(*function)(void*), void* arg_p);
  * 
  * Polling is used in wait. By default the polling interval is one second.
  *
- * @param  threadpool to wait for
+ * @param threadpool     the threadpool to wait for
  * @return nothing
  */
-extern void thpool_wait(thpool);
+void thpool_wait(threadpool);
 
 
 /**
@@ -74,19 +74,19 @@ extern void thpool_wait(thpool);
  * 
  * While the thread is being paused, new work can be added.
  * 
- * @param  threadpool where the threads should be paused
+ * @param threadpool    the threadpool where the threads should be paused
  * @return nothing
  */
-extern void thpool_pause(thpool);
+void thpool_pause(threadpool);
 
 
 /**
  * @brief Unpauses all threads if they are paused
  * 
- * @param thpool     the threadpool where the threads should be unpaused
+ * @param threadpool     the threadpool where the threads should be unpaused
  * @return nothing
  */
-extern void thpool_resume(thpool);
+void thpool_resume(threadpool);
 
 
 /**
@@ -95,10 +95,10 @@ extern void thpool_resume(thpool);
  * This will wait for the currently active threads to finish and then 'kill'
  * the whole threadpool to free up memory.
  * 
- * @param thpool     the threadpool to destroy
+ * @param threadpool     the threadpool to destroy
  * @return nothing
  */
-extern void thpool_destroy(thpool);
+void thpool_destroy(threadpool);
 
 
 
