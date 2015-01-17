@@ -51,9 +51,9 @@ For a deeper look into the documentation check in the `thpool.h` file. Also noti
 
 | Function example                                  | Description                   |
 |---------------------------------------------------|-------------------------------|
-| thpool_init(4)                                    | Will return a new threadpool with 4 threads.         |
-| thpool_add_work(thpool, void *(*function_p)(void*), void* arg_p) | Adds work to the threadpool. Work is simply a function. You can pass a single argument to the function if you wish. If not, NULL should be passed. |
-| thpool_wait(thpool)                               | Will wait for all jobs (both in queue and currently running) to finish.    |
+| ***thpool_init(4)***                                    | Will return a new threadpool with 4 threads.         |
+| **thpool_add_work(thpool, void *(*function_p)(void*), (void*)arg_p)** | Will add new work to the pool. Work is simply a function. You can pass a single argument to the function if you wish. If not, NULL should be passed. |
+| thpool_wait(thpool)                               | Will wait for **all** jobs (both in queue and currently running) to finish.    |
 | thpool_destroy(thpool)                            | This will destroy thpool. If jobs are currently being executed, then it will wait for them to finish before destroying the threadpool. |
 | thpool_pause(thpool)                              | All threads in the threadpool will pause no matter if they are idle or executing |
 | thpool_pause(thpool)                              | If the threadpool is paused, then all threads will resume from where they were |
