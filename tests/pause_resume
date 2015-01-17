@@ -23,6 +23,7 @@ function test_pause_resume_est7secs { #threads
 		return
 	fi
 	err "Elapsed $realsecs which is more than than allowed"
+	exit 1
 }
 
 
