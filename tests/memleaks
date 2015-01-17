@@ -25,6 +25,7 @@ function test_thread_free { #threads
 		return
 	fi
 	err "Allocated $allocs times but freed only $frees" "$output"
+	exit 1
 }
 
 
@@ -40,9 +41,11 @@ function test_thread_free_multi { #threads #times
 		frees=$(extract_num "[0-9]* frees" "$heap_usage")
 		if (( "$allocs" == 0 )); then
 			err "Allocated 0 times. Something is wrong.." "$output"
+			exit 1
 		fi
 		if (( "$allocs" != "$frees" )); then
 			err "Allocated $allocs times but freed only $frees" "$output"
+			exit 1
 		fi
 		#echo "Allocs: $allocs    Frees: $frees"
 	done
