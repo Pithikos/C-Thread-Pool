@@ -72,7 +72,11 @@ int thpool_add_work(threadpool, void *(*function_p)(void*), void* arg_p);
  * Once the queue is empty and all work has completed, the calling thread
  * (probably the main program) will continue.
  * 
- * Polling is used in wait. By default the polling interval is one second.
+ * Smart polling is used in wait. The polling is initially 0 - meaning that
+ * there is virtually no polling at all. If after 1 seconds the threads
+ * haven't finished, the polling interval starts growing exponentially 
+ * untill it reaches max_secs seconds. Then it jumps down to a maximum polling
+ * interval assuming that heavy processing is being used in the threadpool.
  *
  * @example
  * 

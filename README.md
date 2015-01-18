@@ -17,6 +17,7 @@ This is an updated and heavily refactored version of my original threadpool. The
   * Synchronisation control from the user (pause/resume/wait)
   * Thorough testing for memory leaks and race conditions
   * Cleaner and more opaque API
+  * Smart polling - polling interval changes on-the-fly
 
 
 ## Compiling
