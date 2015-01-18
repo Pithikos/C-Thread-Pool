@@ -37,7 +37,7 @@ Then run the executable like this:
 
 1. Include the header in your source file: `#include "thpool.h"`
 2. Create a thread pool with number of threads you want: `threadpool thpool = thpool_init(4);`
-3. Add work to the pool: `thpool_add_work(thpool, (void*)doSth, (void*)arg);`
+3. Add work to the pool: `thpool_add_work(thpool, (void*)function_p, (void*)arg_p);`
 
 The workers(threads) will start their work automatically as fast as there is new work
 in the pool. If you want to wait for all added work to be finished before continuing
