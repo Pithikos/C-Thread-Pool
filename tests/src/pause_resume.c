@@ -33,14 +33,15 @@ int main(int argc, char *argv[]){
 	
 	thpool_pause(thpool);
 	
+	// Since pool is paused, threads should not start before main's sleep
 	thpool_add_work(thpool, (void*)sleep_4_secs, NULL);
 	thpool_add_work(thpool, (void*)sleep_4_secs, NULL);
 	
 	sleep(3);
 	
+	// Now we will start threads in no-parallel with main
 	thpool_resume(thpool);
-	// If it works, then the threadpool starts working NOW
-	
+
 	sleep(2); // Give some time to threads to get the work
 	
 	thpool_destroy(thpool); // Wait for work to finish

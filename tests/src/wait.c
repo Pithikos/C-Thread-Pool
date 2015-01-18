@@ -27,9 +27,13 @@ int main(int argc, char *argv[]){
 		puts("This testfile needs excactly three arguments");
 		exit(1);
 	}
+	
+	
 	int num_jobs      = strtol(argv[1], &p, 10);
 	int num_threads   = strtol(argv[2], &p, 10);
 	int wait_each_job = strtol(argv[3], &p, 10);
+	
+	printf("%d\n", wait_each_job);
 
 	threadpool thpool = thpool_init(num_threads);
 	
