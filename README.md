@@ -35,7 +35,7 @@ Then run the executable like this:
 
 ##Basic usage
 
-1. Include the header in your source file: ``#include "thpool.h"`
+1. Include the header in your source file: `#include "thpool.h"`
 2. Create a thread pool with number of threads you want: `threadpool thpool = thpool_init(4);`
 3. Add work to the pool: `thpool_add_work(thpool, (void*)doSth, (void*)arg);`
 
