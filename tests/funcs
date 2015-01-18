@@ -25,6 +25,12 @@ function extract_num { #needle with number #haystack
 }
 
 
+function time_exec { #command ..
+	realsecs=$(/usr/bin/time -f '%e' "$@" 2>&1 > /dev/null)
+	echo "$realsecs"
+}
+
+
 function err { #string #log
 	echo "------------------- ERROR ------------------------"
 	echo "$1"
