@@ -8,11 +8,13 @@
 #define _THPOOL_
 
 
-/* thpool is a pointer to a thpool data structure */
-typedef struct thpool_* threadpool;
+
 
 
 /* =================================== API ======================================= */
+
+
+typedef struct thpool_* threadpool;
 
 
 /**
