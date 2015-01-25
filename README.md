@@ -20,7 +20,7 @@ This is an updated and heavily refactored version of my original threadpool. The
   * Smart polling - polling interval changes on-the-fly
 
 
-## Compiling
+## Run an example
 
 The library is not precompiled so you have to compile it with your project. The thread pool
 uses POSIX threads so if you compile with gcc on Linux you have to use the flag `-pthread` like this:
@@ -33,7 +33,7 @@ Then run the executable like this:
     ./example
 
 
-##Basic usage
+## Basic usage
 
 1. Include the header in your source file: `#include "thpool.h"`
 2. Create a thread pool with number of threads you want: `threadpool thpool = thpool_init(4);`
@@ -46,7 +46,7 @@ you can use `thpool_wait(thpool);`. If you want to destroy the pool you can use
 
 
 
-##API
+## API
 
 For a deeper look into the documentation check in the [thpool.h](https://github.com/Pithikos/C-Thread-Pool/blob/master/thpool.h) file. Below is a fast practical overview.
 
