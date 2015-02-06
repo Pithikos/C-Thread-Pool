@@ -330,7 +330,7 @@ static void* thread_do(struct thread* thread_p){
 	struct sigaction act;
 	act.sa_handler = thread_hold;
 	if (sigaction(SIGUSR1, &act, NULL) == -1) {
-		perror("Error: cannot handle SIGUSR1");
+		fprintf(stderr, "thread_do(): cannot handle SIGUSR1");
 	}
 	
 	/* Mark thread as alive (initialized) */
@@ -492,7 +492,7 @@ static void jobqueue_destroy(thpool_* thpool_p){
 /* Init semaphore to 1 or 0 */
 static void bsem_init(bsem *bsem_p, int value) {
 	if (value < 0 || value > 1) {
-		printf("ERROR: bsem_init(): Binary semaphore can take only values 1 or 0");
+		fprintf(stderr, "bsem_init(): Binary semaphore can take only values 1 or 0");
 		exit(1);
 	}
 	bsem_p->v = value;
