@@ -182,7 +182,7 @@ void thpool_wait(thpool_* thpool_p){
 	/* Continuous polling */
 	double timeout = 1.0;
 	time_t start, end;
-	double tpassed;
+	double tpassed = 0.0;
 	time (&start);
 	while (tpassed < timeout && 
 			(thpool_p->jobqueue_p->len || thpool_p->num_threads_working))
@@ -232,7 +232,7 @@ void thpool_destroy(thpool_* thpool_p){
 	/* Give one second to kill idle threads */
 	double TIMEOUT = 1.0;
 	time_t start, end;
-	double tpassed;
+	double tpassed = 0.0;
 	time (&start);
 	while (tpassed < TIMEOUT && thpool_p->num_threads_alive){
 		bsem_post_all(thpool_p->jobqueue_p->has_jobs);
