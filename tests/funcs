@@ -37,3 +37,8 @@ function err { #string #log
 	echo "$2" >> error.log
 	exit 1
 }
+
+
+function compile { #cfilepath
+	gcc $COMPILATION_FLAGS "$1" ../thpool.c -pthread -o test
+}

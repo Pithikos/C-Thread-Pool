@@ -13,7 +13,7 @@
 
 function test_wait_each_job { #threads #jobs
 	echo "Will test waiting for each job ($1 threads, $2 jobs)"
-	gcc src/wait.c ../thpool.c -pthread -o test
+	compile src/wait.c
 	realsecs=$(time_exec ./test $2 $1 1)
 	threshold=1.00 # in secs
 
@@ -29,7 +29,7 @@ function test_wait_each_job { #threads #jobs
 
 function test_wait_pool { #threads #jobs
 	echo "Will test waiting for whole threadpool ($1 threads, $2 jobs)"
-	gcc src/wait.c ../thpool.c -pthread -o test
+	compile src/wait.c
 	realsecs=$(time_exec ./test $2 $1 0)
 	threshold=1.00 # in secs
 	

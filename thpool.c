@@ -69,8 +69,8 @@ typedef struct thread{
 /* Threadpool */
 typedef struct thpool_{
 	thread**   threads;                  /* pointer to threads        */
-	int        num_threads_alive;        /* threads currently alive   */
-	int        num_threads_working;      /* threads currently working */
+	volatile int num_threads_alive;      /* threads currently alive   */
+	volatile int num_threads_working;    /* threads currently working */
 	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
 	jobqueue*  jobqueue_p;               /* pointer to the job queue  */    
 } thpool_;

@@ -13,7 +13,7 @@
 
 function test_pause_resume_est7secs { #threads
 	echo "Pause and resume test for 7 secs with $1 threads"
-	gcc src/pause_resume.c ../thpool.c -pthread -o test
+	compile src/pause_resume.c
 	realsecs=$(/usr/bin/time -f '%e' ./test "$1" 2>&1 > /dev/null)
 	threshold=1.00 # in secs
 	
