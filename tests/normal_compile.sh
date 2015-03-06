@@ -8,9 +8,9 @@
 
 # ---------------------------- Tests -----------------------------------
 
-. threadpool
-. pause_resume
-. memleaks
-. wait
+. threadpool.sh
+. pause_resume.sh
+. memleaks.sh
+. wait.sh
 
 echo "No errors"

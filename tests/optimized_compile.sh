@@ -10,6 +10,6 @@
 # ---------------------------- Tests -----------------------------------
 
 COMPILATION_FLAGS='-g -O'
-. normal_compile
+. normal_compile.sh
 
 echo "No optimization errors"

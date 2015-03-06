@@ -5,7 +5,7 @@
 # might use in his/her code
 #
 
-. funcs
+. funcs.sh
 
 
 function test_mass_addition { #endsum #threads

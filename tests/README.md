@@ -10,6 +10,8 @@ pause_resume - Will test the synchronisation of the threadpool from the user.
 wait         - Will run tests to assuse that the wait() function works correctly.
 
 ````
+Any test can be run with extra flags by exporting the variable COMPILATION_FLAGS. That's
+also how the optimized_compile test works.
 
 
 **Compilation cases**

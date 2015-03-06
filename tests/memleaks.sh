@@ -5,7 +5,7 @@
 # valgrind is used so make sure you have it installed
 #
 
-. funcs
+. funcs.sh
 
 
 # ---------------------------- Tests -----------------------------------
