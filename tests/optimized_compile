@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 
 #
 # This file will run all tests but with a binary that has

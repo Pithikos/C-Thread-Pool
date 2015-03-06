@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 
 #
 # This will run all tests for a simple compilation
