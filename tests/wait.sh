@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 #
 # This file has several tests to check for memory leaks.

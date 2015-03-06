@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 #
 # This file should be included by other shell scripts that
