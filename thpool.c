@@ -13,6 +13,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include <errno.h>
 #include <time.h> 
@@ -394,7 +395,12 @@ static int jobqueue_init(thpool_* thpool_p){
 	if (thpool_p->jobqueue_p == NULL){
 		return -1;
 	}
+    memset(thpool_p->jobqueue_p, 0, sizeof(struct jobqueue));
 	thpool_p->jobqueue_p->has_jobs = (struct bsem*)malloc(sizeof(struct bsem));
+	if (thpool_p->jobqueue_p->has_jobs == NULL){
+		return -1;
+	}
+    memset(thpool_p->jobqueue_p->has_jobs, 0, sizeof(struct bsem));
 	bsem_init(thpool_p->jobqueue_p->has_jobs, 0);
 	jobqueue_clear(thpool_p);
 	return 0;
