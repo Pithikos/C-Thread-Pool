@@ -13,7 +13,6 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <pthread.h>
 #include <errno.h>
 #include <time.h> 
@@ -124,6 +123,7 @@ struct thpool_* thpool_init(int num_threads){
 		fprintf(stderr, "thpool_init(): Could not allocate memory for thread pool\n");
 		exit(1);
 	}
+	pthread_mutex_init(&(thpool_p->thcount_lock), NULL);
 	thpool_p->num_threads_alive   = 0;
 	thpool_p->num_threads_working = 0;
 
@@ -391,17 +391,19 @@ static void thread_destroy (thread* thread_p){
 
 /* Initialize queue */
 static int jobqueue_init(thpool_* thpool_p){
+	
 	thpool_p->jobqueue_p = (struct jobqueue*)malloc(sizeof(struct jobqueue));
+	pthread_mutex_init(&(thpool_p->jobqueue_p->rwmutex), NULL);
 	if (thpool_p->jobqueue_p == NULL){
 		return -1;
 	}
-    memset(thpool_p->jobqueue_p, 0, sizeof(struct jobqueue));
+	
 	thpool_p->jobqueue_p->has_jobs = (struct bsem*)malloc(sizeof(struct bsem));
 	if (thpool_p->jobqueue_p->has_jobs == NULL){
 		return -1;
 	}
-    memset(thpool_p->jobqueue_p->has_jobs, 0, sizeof(struct bsem));
 	bsem_init(thpool_p->jobqueue_p->has_jobs, 0);
+	
 	jobqueue_clear(thpool_p);
 	return 0;
 }
@@ -501,6 +503,8 @@ static void bsem_init(bsem *bsem_p, int value) {
 		fprintf(stderr, "bsem_init(): Binary semaphore can take only values 1 or 0");
 		exit(1);
 	}
+	pthread_mutex_init(&(bsem_p->mutex), NULL);
+	pthread_cond_init(&(bsem_p->cond), NULL);
 	bsem_p->v = value;
 }
 
