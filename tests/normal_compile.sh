@@ -10,6 +10,7 @@
 
 . threadpool.sh
 . pause_resume.sh
+. heap_stack_garbage.sh
 . memleaks.sh
 . wait.sh
 

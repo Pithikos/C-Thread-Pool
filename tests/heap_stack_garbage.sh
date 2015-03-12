@@ -11,11 +11,11 @@
 
 function test_with_nonzero_heap_and_stack {
     compile src/nonzero_heap_stack.c
-    if ! timeout 1 ./test; then
-        err "Fail running on nonzero heap and stack"
+    echo "Testing for non-zero heap and stack"
+    output=$(timeout 1 ./test)
+    if [[ $? != 0 ]]; then
+        err "Fail running on nonzero heap and stack" "$output"
         exit 1
-    else
-        return
     fi
 }
 
