@@ -27,7 +27,7 @@ This is an updated and heavily refactored version of my original threadpool. The
 The library is not precompiled so you have to compile it with your project. The thread pool
 uses POSIX threads so if you compile with gcc on Linux you have to use the flag `-pthread` like this:
 
-    gcc example.c thpool.c -pthread -o example
+    gcc example.c thpool.c -D THPOOL_DEBUG -pthread -o example
 
 
 Then run the executable like this:

@@ -144,7 +144,9 @@ struct thpool_* thpool_init(int num_threads){
 	int n;
 	for (n=0; n<num_threads; n++){
 		thread_init(thpool_p, &thpool_p->threads[n], n);
-		printf("Created thread %d in pool \n", n);
+#ifdef THPOOL_DEBUG
+		printf("THPOOL_DEBUG: Created thread %d in pool \n", n);
+#endif
 	}
 	
 	/* Wait for threads to initialize */
