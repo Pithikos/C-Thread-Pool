@@ -19,6 +19,12 @@
 
 #include "thpool.h"
 
+#ifdef THPOOL_DEBUG
+#define THPOOL_DEBUG 1
+#else
+#define THPOOL_DEBUG 0
+#endif
+
 #define MAX_NANOSEC 999999999
 #define CEIL(X) ((X-(int)(X)) > 0 ? (int)(X+1) : (int)(X))
 
@@ -144,9 +150,8 @@ struct thpool_* thpool_init(int num_threads){
 	int n;
 	for (n=0; n<num_threads; n++){
 		thread_init(thpool_p, &thpool_p->threads[n], n);
-#ifdef THPOOL_DEBUG
-		printf("THPOOL_DEBUG: Created thread %d in pool \n", n);
-#endif
+		if (THPOOL_DEBUG)
+			printf("THPOOL_DEBUG: Created thread %d in pool \n", n);
 	}
 	
 	/* Wait for threads to initialize */
