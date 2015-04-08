@@ -395,7 +395,7 @@ static int jobqueue_init(thpool_* thpool_p){
 		return -1;
 	}
 	thpool_p->jobqueue_p->has_jobs = (struct bsem*)malloc(sizeof(struct bsem));
-    pthread_mutex_init(&thpool_p->jobqueue_p->rwmutex, NULL);
+	pthread_mutex_init(&thpool_p->jobqueue_p->rwmutex, NULL);
 	bsem_init(thpool_p->jobqueue_p->has_jobs, 0);
 	jobqueue_clear(thpool_p);
 	return 0;
