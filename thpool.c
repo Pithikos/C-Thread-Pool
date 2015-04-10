@@ -274,6 +274,7 @@ void thpool_pause(thpool_* thpool_p) {
 
 /* Resume all threads in threadpool */
 void thpool_resume(thpool_* thpool_p) {
+	(void)thpool_p;
 	threads_on_hold = 0;
 }
 
