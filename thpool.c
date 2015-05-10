@@ -410,7 +410,7 @@ static int jobqueue_init(thpool_* thpool_p){
 		return -1;
 	}
 	bsem_init(thpool_p->jobqueue_p->has_jobs, 0);
-	
+	thpool_p->jobqueue_p->len = 0;
 	jobqueue_clear(thpool_p);
 	return 0;
 }
