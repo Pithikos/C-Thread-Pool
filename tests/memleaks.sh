@@ -10,6 +10,18 @@
 
 # ---------------------------- Tests -----------------------------------
 
+function test_thread_errors {
+	echo "Testing creation and destruction of threads for errors (=$1)"
+	compile src/no_work.c
+	output=$(valgrind --leak-check=full --track-origins=yes ./test "$1" 2>&1 > /dev/null)
+	error_summary=$(echo "$output" | grep "ERROR SUMMARY")
+	errors=$(extract_num "[0-9]* errors" "$error_summary")
+	if (( "$errors" == 0 )); then
+		return
+	fi
+	err "Valgrind returned $errors errors"
+	exit 1
+}
 
 function test_thread_free { #threads
 	echo "Testing creation and destruction of threads(=$1)"
@@ -55,6 +67,7 @@ function test_thread_free_multi { #threads #times
 
 
 # Run tests
+test_thread_errors 1
 test_thread_free 1
 test_thread_free 2
 test_thread_free 4
