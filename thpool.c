@@ -143,6 +143,9 @@ struct thpool_* thpool_init(int num_threads){
 	thpool_p->threads = (struct thread**)malloc(num_threads * sizeof(struct thread));
 	if (thpool_p->threads == NULL){
 		fprintf(stderr, "thpool_init(): Could not allocate memory for threads\n");
+		jobqueue_destroy(thpool_p);
+		free(thpool_p->jobqueue_p);
+		free(thpool_p);
 		return NULL;
 	}
 
