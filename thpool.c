@@ -16,6 +16,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <time.h> 
+#include <sys/prctl.h>
 
 #include "thpool.h"
 
@@ -335,6 +336,10 @@ static void thread_hold () {
 * @return nothing
 */
 static void* thread_do(struct thread* thread_p){
+	/* Set thread name for profiling and debuging */
+	char thread_name[128] = {0};
+	sprintf(thread_name, "thread-pool-%d", thread_p->id);
+	prctl(PR_SET_NAME, thread_name);
 
 	/* Assure all threads have been created before starting serving */
 	thpool_* thpool_p = thread_p->thpool_p;
