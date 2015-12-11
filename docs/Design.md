@@ -45,8 +45,3 @@
 	   |           |         job1________ 
 	   |  next-------------->|           |
 	   |___________|         |           |..
-
-
-## Synchronisation
-
-*Mutexes* and *binary semaphores* are the main tools to achieve synchronisation between threads.

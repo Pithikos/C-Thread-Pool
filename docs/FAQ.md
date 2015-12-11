@@ -24,6 +24,8 @@ and thus threads will have more than enough time to terminate.
 
 
 ###Why does wait() use all my CPU?
+Notice: As of 11-Dec-2015 wait() doesn't use polling anymore. Instead a conditional variable is being used so in theory there should not be any CPU overhead.
+
 Normally `wait()` will spike CPU usage to full when called. This is normal as long as it doesn't last for more than 1 second. The reason this happens is that `wait()` goes through various phases of polling (what is called smart polling).
 
  * Initially there is no interval between polling and hence the 100% use of your CPU.

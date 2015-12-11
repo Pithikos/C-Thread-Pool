@@ -2,24 +2,14 @@
 
 # C Thread Pool
 
-This is a minimal but fully functional threadpool implementation.
+This is a minimal but advanced threadpool implementation.
 
   * ANCI C and POSIX compliant
-  * Number of threads can be chosen on initialization
-  * Minimal but powerful interface
-  * Full documentation
+  * Pause/resume/wait as you like
+  * Simple easy-to-digest API
+  * Well tested
 
 The threadpool is under MIT license. Notice that this project took a considerable amount of work and sacrifice of my free time and the reason I give it for free (even for commercial use) is so when you become rich and wealthy you don't forget about us open-source creatures of the night. Cheers!
-
-
-## v2 Changes
-
-This is an updated and heavily refactored version of my original threadpool. The main things taken into consideration in this new version are:
-
-  * Synchronisation control from the user (pause/resume/wait)
-  * Thorough testing for memory leaks and race conditions
-  * Cleaner and more opaque API
-  * Smart polling - polling interval changes on-the-fly
 
 
 ## Run an example
