@@ -55,6 +55,7 @@ function test_thread_free_multi { #threads #times
 
 
 # Run tests
+assure_installed_valgrind
 test_thread_free 1
 test_thread_free 2
 test_thread_free 4

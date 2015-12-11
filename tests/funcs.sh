@@ -5,6 +5,14 @@
 # want to use any of the functions
 #
 
+function assure_installed_valgrind {
+    valgrind --version &> /dev/null
+    if (( $? != 0 )); then
+		msg="Valgrind seems to not be installed."
+		err "$msg" "$msg"
+	fi
+}
+
 
 function needle { #needle #haystack
 	python -c "import re; print(re.search(r'$1', '$2').group(0))"
