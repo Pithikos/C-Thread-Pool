@@ -10,7 +10,6 @@
 
 # ---------------------------- Tests -----------------------------------
 
-
 function test_thread_free { #threads
 	echo "Testing creation and destruction of threads(=$1)"
 	compile src/no_work.c
