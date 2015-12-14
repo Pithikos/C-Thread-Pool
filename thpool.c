@@ -16,8 +16,6 @@
 #include <pthread.h>
 #include <errno.h>
 #include <time.h> 
-#include <sys/prctl.h>
-
 #include "thpool.h"
 
 #ifdef THPOOL_DEBUG
@@ -298,10 +296,18 @@ static void thread_hold () {
 * @return nothing
 */
 static void* thread_do(struct thread* thread_p){
+
 	/* Set thread name for profiling and debuging */
 	char thread_name[128] = {0};
 	sprintf(thread_name, "thread-pool-%d", thread_p->id);
-	prctl(PR_SET_NAME, thread_name);
+
+#if defined(__linux__)
+	pthread_setname_np(thread_p->pthread, thread_name);
+#elif defined(__APPLE__) && defined(__MACH__)
+	pthread_setname_np(thread_name);
+#else
+	fprintf(stderr, "thread_do(): pthread_setname_np is not supported on this system");
+#endif
 
 	/* Assure all threads have been created before starting serving */
 	thpool_* thpool_p = thread_p->thpool_p;
