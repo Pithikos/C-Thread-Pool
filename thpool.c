@@ -178,9 +178,7 @@ int thpool_add_work(thpool_* thpool_p, void *(*function_p)(void*), void* arg_p){
 	newjob->arg=arg_p;
 
 	/* add job to queue */
-	pthread_mutex_lock(&thpool_p->jobqueue.rwmutex);
 	jobqueue_push(&thpool_p->jobqueue, newjob);
-	pthread_mutex_unlock(&thpool_p->jobqueue.rwmutex);
 
 	return 0;
 }
@@ -331,10 +329,7 @@ static void* thread_do(struct thread* thread_p){
 			/* Read job from queue and execute it */
 			void*(*func_buff)(void* arg);
 			void*  arg_buff;
-			job* job_p;
-			pthread_mutex_lock(&thpool_p->jobqueue.rwmutex);
-			job_p = jobqueue_pull(&thpool_p->jobqueue);
-			pthread_mutex_unlock(&thpool_p->jobqueue.rwmutex);
+			job* job_p = jobqueue_pull(&thpool_p->jobqueue);
 			if (job_p) {
 				func_buff = job_p->function;
 				arg_buff  = job_p->arg;
@@ -405,11 +400,10 @@ static void jobqueue_clear(jobqueue* jobqueue_p){
 
 
 /* Add (allocated) job to queue
- *
- * Notice: Caller MUST hold a mutex
  */
 static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 
+	pthread_mutex_lock(&jobqueue_p->rwmutex);
 	newjob->prev = NULL;
 
 	switch(jobqueue_p->len){
@@ -427,17 +421,16 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 	jobqueue_p->len++;
 	
 	bsem_post(jobqueue_p->has_jobs);
+	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 }
 
 
 /* Get first job from queue(removes it from queue)
- * 
- * Notice: Caller MUST hold a mutex
  */
 static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 
-	job* job_p;
-	job_p = jobqueue_p->front;
+	pthread_mutex_lock(&jobqueue_p->rwmutex);
+	job* job_p = jobqueue_p->front;
 
 	switch(jobqueue_p->len){
 		
@@ -457,7 +450,8 @@ static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 					bsem_post(jobqueue_p->has_jobs);
 					
 	}
-	
+
+	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 	return job_p;
 }
 
