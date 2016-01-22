@@ -83,7 +83,7 @@ typedef struct thpool_{
 /* ========================== PROTOTYPES ============================ */
 
 
-static void  thread_init(thpool_* thpool_p, struct thread** thread_p, int id);
+static int  thread_init(thpool_* thpool_p, struct thread** thread_p, int id);
 static void* thread_do(struct thread* thread_p);
 static void  thread_hold();
 static void  thread_destroy(struct thread* thread_p);
@@ -259,14 +259,14 @@ void thpool_resume(thpool_* thpool_p) {
  * 
  * @param thread        address to the pointer of the thread to be created
  * @param id            id to be given to the thread
- * 
+ * @return 0 on success, -1 otherwise.
  */
-static void thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
+static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 	
 	*thread_p = (struct thread*)malloc(sizeof(struct thread));
 	if (thread_p == NULL){
 		fprintf(stderr, "thpool_init(): Could not allocate memory for thread\n");
-		exit(1);
+		return -1;
 	}
 
 	(*thread_p)->thpool_p = thpool_p;
@@ -274,7 +274,7 @@ static void thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 
 	pthread_create(&(*thread_p)->pthread, NULL, (void *)thread_do, (*thread_p));
 	pthread_detach((*thread_p)->pthread);
-	
+	return 0;
 }
 
 
