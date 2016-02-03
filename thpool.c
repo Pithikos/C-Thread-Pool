@@ -8,7 +8,9 @@
  * 
  ********************************/
 
+#if defined(__linux__)
 #define _GNU_SOURCE
+#endif
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
