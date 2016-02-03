@@ -8,7 +8,6 @@
  * 
  ********************************/
 
-
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -16,6 +15,9 @@
 #include <pthread.h>
 #include <errno.h>
 #include <time.h> 
+#if defined(__linux__)
+#include <sys/prctl.h>
+#endif
 #include "thpool.h"
 
 #ifdef THPOOL_DEBUG
@@ -197,7 +199,9 @@ void thpool_wait(thpool_* thpool_p){
 
 /* Destroy the threadpool */
 void thpool_destroy(thpool_* thpool_p){
-	
+	/* No need to destory if it's NULL */
+	if (thpool_p == NULL) return ;
+
 	volatile int threads_total = thpool_p->num_threads_alive;
 
 	/* End each thread 's infinite loop */
@@ -302,7 +306,8 @@ static void* thread_do(struct thread* thread_p){
 	sprintf(thread_name, "thread-pool-%d", thread_p->id);
 
 #if defined(__linux__)
-	pthread_setname_np(thread_p->pthread, thread_name);
+	/* Use prctl instead to prevent using _GNU_SOURCE flag and implicit declaration */
+	prctl(PR_SET_NAME, thread_name);
 #elif defined(__APPLE__) && defined(__MACH__)
 	pthread_setname_np(thread_name);
 #else
