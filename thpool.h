@@ -30,21 +30,23 @@ typedef struct thpool_* threadpool;
  *    thpool = thpool_init(4);               //then we initialize it to 4 threads
  *    ..
  * 
+ * @param  function_p    pointer to function to add as work
  * @param  num_threads   number of threads to be created in the threadpool
  * @return threadpool    created threadpool on success,
  *                       NULL on error
  */
-threadpool thpool_init(int num_threads);
+threadpool thpool_init(void (*)(void*), int num_threads);
 
 
 /**
  * @brief Add work to the job queue
  * 
- * Takes an action and its argument and adds it to the threadpool's job queue.
+ * Takes work and adds it to the threadpool's job queue.
  * If you want to add to work a function with more than one arguments then
  * a way to implement this is by passing a pointer to a structure.
  * 
- * NOTICE: You have to cast both the function and argument to not get warnings.
+ * NOTICE: You have to cast argument to not get warnings.
+ * NOTICE: Any pointers added should be considered moved.
  * 
  * @example
  * 
@@ -54,17 +56,18 @@ threadpool thpool_init(int num_threads);
  * 
  *    int main() {
  *       ..
+ *       thpool_init((void*)print_num, 1234);
+ *       ..
  *       int a = 10;
- *       thpool_add_work(thpool, (void*)print_num, (void*)a);
+ *       thpool_add_work(thpool, (void*)a);
  *       ..
  *    }
  * 
  * @param  threadpool    threadpool to which the work will be added
- * @param  function_p    pointer to function to add as work
  * @param  arg_p         pointer to an argument
  * @return 0 on successs, -1 otherwise.
  */
-int thpool_add_work(threadpool, void *(*function_p)(void*), void* arg_p);
+int thpool_add_work(threadpool, void* arg_p);
 
 
 /**

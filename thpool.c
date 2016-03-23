@@ -45,7 +45,6 @@ typedef struct bsem {
 /* Job */
 typedef struct job{
 	struct job*  prev;                   /* pointer to previous job   */
-	void*  (*function)(void* arg);       /* function pointer          */
 	void*  arg;                          /* function's argument       */
 } job;
 
@@ -75,12 +74,9 @@ typedef struct thpool_{
 	volatile int num_threads_working;    /* threads currently working */
 	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
 	pthread_cond_t  threads_all_idle;    /* signal to thpool_wait     */
+    void*  (*handler)(void* arg);        /* function pointer          */
 	jobqueue*  jobqueue_p;               /* pointer to the job queue  */    
 } thpool_;
-
-
-
-
 
 /* ========================== PROTOTYPES ============================ */
 
@@ -110,7 +106,7 @@ static void  bsem_wait(struct bsem *bsem_p);
 
 
 /* Initialise thread pool */
-struct thpool_* thpool_init(int num_threads){
+struct thpool_* thpool_init(void (*worker)(void*), int num_threads){
 
 	threads_on_hold   = 0;
 	threads_keepalive = 1;
@@ -126,6 +122,7 @@ struct thpool_* thpool_init(int num_threads){
 		fprintf(stderr, "thpool_init(): Could not allocate memory for thread pool\n");
 		return NULL;
 	}
+	thpool_p->worker = worker;
 	thpool_p->num_threads_alive   = 0;
 	thpool_p->num_threads_working = 0;
 
@@ -165,7 +162,7 @@ struct thpool_* thpool_init(int num_threads){
 
 
 /* Add work to the thread pool */
-int thpool_add_work(thpool_* thpool_p, void *(*function_p)(void*), void* arg_p){
+int thpool_add_work(thpool_* thpool_p, void* arg_p){
 	job* newjob;
 
 	newjob=(struct job*)malloc(sizeof(struct job));
@@ -174,8 +171,7 @@ int thpool_add_work(thpool_* thpool_p, void *(*function_p)(void*), void* arg_p){
 		return -1;
 	}
 
-	/* add function and argument */
-	newjob->function=function_p;
+	/* add argument */
 	newjob->arg=arg_p;
 
 	/* add job to queue */
@@ -331,6 +327,9 @@ static void* thread_do(struct thread* thread_p){
 	thpool_p->num_threads_alive += 1;
 	pthread_mutex_unlock(&thpool_p->thcount_lock);
 
+	void (*func_buff)(void*) =
+	  thpool_p->handler;
+
 	while(threads_keepalive){
 
 		bsem_wait(thpool_p->jobqueue_p->has_jobs);
@@ -342,16 +341,12 @@ static void* thread_do(struct thread* thread_p){
 			pthread_mutex_unlock(&thpool_p->thcount_lock);
 			
 			/* Read job from queue and execute it */
-			void*(*func_buff)(void* arg);
-			void*  arg_buff;
 			job* job_p;
 			pthread_mutex_lock(&thpool_p->jobqueue_p->rwmutex);
 			job_p = jobqueue_pull(thpool_p);
 			pthread_mutex_unlock(&thpool_p->jobqueue_p->rwmutex);
 			if (job_p) {
-				func_buff = job_p->function;
-				arg_buff  = job_p->arg;
-				func_buff(arg_buff);
+				func_buff(job_p->arg);
 				free(job_p);
 			}
 			
