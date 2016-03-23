@@ -16,35 +16,49 @@
 
 typedef struct thpool_* threadpool;
 
+/**
+ * @brief Thread pool worker
+ *
+ * The workers will get passed the threadpool, and a user supplied argument.
+ * They can then repeatedly call thpool_get_work() on that pool, until
+ * thpool_quitting() returns 0.
+ */
+
+typedef void (*thpool_worker)(threadpool,void*);
 
 /**
  * @brief  Initialize threadpool
  * 
  * Initializes a threadpool. This function will not return untill all
  * threads have initialized successfully.
+ *
+ * NOTE: arg parameter is just because I'm absolutely paranoid about C and
+ * closures. It's passed to all workers, and not locked, or thread safe!
  * 
  * @example
  * 
  *    ..
  *    threadpool thpool;                     //First we declare a threadpool
- *    thpool = thpool_init(4);               //then we initialize it to 4 threads
+ *    thpool = thpool_init(worker,4);               //then we initialize it to 4 threads
  *    ..
  * 
  * @param  num_threads   number of threads to be created in the threadpool
+ * @param  worker    pointer to function to process work
+ * @param  arg       argument to pass to worker on startup.
  * @return threadpool    created threadpool on success,
  *                       NULL on error
  */
-threadpool thpool_init(int num_threads);
-
+threadpool thpool_init(int num_threads, thpool_worker worker, void* arg);
 
 /**
  * @brief Add work to the job queue
  * 
- * Takes an action and its argument and adds it to the threadpool's job queue.
+ * Takes work and adds it to the threadpool's job queue.
  * If you want to add to work a function with more than one arguments then
  * a way to implement this is by passing a pointer to a structure.
  * 
- * NOTICE: You have to cast both the function and argument to not get warnings.
+ * NOTICE: You have to cast argument to not get warnings.
+ * NOTICE: Any pointers added should be considered moved.
  * 
  * @example
  * 
@@ -54,18 +68,55 @@ threadpool thpool_init(int num_threads);
  * 
  *    int main() {
  *       ..
+ *       thpool_init((void*)print_num, 1234);
+ *       ..
  *       int a = 10;
- *       thpool_add_work(thpool, (void*)print_num, (void*)a);
+ *       thpool_add_work(thpool, (void*)a);
  *       ..
  *    }
  * 
  * @param  threadpool    threadpool to which the work will be added
- * @param  function_p    pointer to function to add as work
  * @param  arg_p         pointer to an argument
  * @return 0 on successs, -1 otherwise.
  */
-int thpool_add_work(threadpool, void *(*function_p)(void*), void* arg_p);
+int thpool_add_work(threadpool, void* arg_p);
 
+/**
+ * @brief Get work from the job queue
+ * 
+ * The worker for a thread should call this repeatedly, to get jobs
+ * to perform. If it returns 0, that means the pool is shutting down
+ * and the worker should cleanup, and exit.
+ *
+ * see thpool_add_work
+ * 
+ * @example
+ * 
+ *    void print_num(threadpool queue, int num){
+ *       printf("%d\n", num);
+ *       void* work;
+ *       
+ *       while(thpool_get_work(queue,&work)) {
+ *         
+ *         printf("work %d\n",(int)work);
+ *       }
+ *    }
+ * 
+ *    int main() {
+ *       ..
+ *       thpool_init((void*)print_num, 1234);
+ *       ..
+ *       int a = 10;
+ *       thpool_add_work(thpool, (void*)a);
+ *       ..
+ *    }
+ * 
+ * @param  threadpool    threadpool to get work from.
+ * @param  work          where to put the next job.
+ * @return 0 if should exit, otherwise amount of retries waiting for jobs
+ */
+ 
+short thpool_get_work(threadpool queue, void** work);
 
 /**
  * @brief Wait for all queued jobs to finish
@@ -83,7 +134,7 @@ int thpool_add_work(threadpool, void *(*function_p)(void*), void* arg_p);
  * @example
  * 
  *    ..
- *    threadpool thpool = thpool_init(4);
+ *    threadpool thpool = thpool_init(worker, 4);
  *    ..
  *    // Add a bunch of work
  *    ..
@@ -108,7 +159,7 @@ void thpool_wait(threadpool);
  * 
  * @example
  * 
- *    threadpool thpool = thpool_init(4);
+ *    threadpool thpool = thpool_init(worker, 4);
  *    thpool_pause(thpool);
  *    ..
  *    // Add a bunch of work
@@ -145,8 +196,8 @@ void thpool_resume(threadpool);
  * 
  * @example
  * int main() {
- *    threadpool thpool1 = thpool_init(2);
- *    threadpool thpool2 = thpool_init(2);
+ *    threadpool thpool1 = thpool_init(worker, 2);
+ *    threadpool thpool2 = thpool_init(worker, 2);
  *    ..
  *    thpool_destroy(thpool1);
  *    ..
