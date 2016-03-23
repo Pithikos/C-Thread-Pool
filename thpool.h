@@ -27,7 +27,7 @@ typedef struct thpool_* threadpool;
  * 
  *    ..
  *    threadpool thpool;                     //First we declare a threadpool
- *    thpool = thpool_init(4);               //then we initialize it to 4 threads
+ *    thpool = thpool_init(worker,4);               //then we initialize it to 4 threads
  *    ..
  * 
  * @param  function_p    pointer to function to add as work
@@ -86,7 +86,7 @@ int thpool_add_work(threadpool, void* arg_p);
  * @example
  * 
  *    ..
- *    threadpool thpool = thpool_init(4);
+ *    threadpool thpool = thpool_init(worker, 4);
  *    ..
  *    // Add a bunch of work
  *    ..
@@ -111,7 +111,7 @@ void thpool_wait(threadpool);
  * 
  * @example
  * 
- *    threadpool thpool = thpool_init(4);
+ *    threadpool thpool = thpool_init(worker, 4);
  *    thpool_pause(thpool);
  *    ..
  *    // Add a bunch of work
@@ -148,8 +148,8 @@ void thpool_resume(threadpool);
  * 
  * @example
  * int main() {
- *    threadpool thpool1 = thpool_init(2);
- *    threadpool thpool2 = thpool_init(2);
+ *    threadpool thpool1 = thpool_init(worker, 2);
+ *    threadpool thpool2 = thpool_init(worker, 2);
  *    ..
  *    thpool_destroy(thpool1);
  *    ..
