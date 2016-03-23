@@ -16,6 +16,15 @@
 
 typedef struct thpool_* threadpool;
 
+/**
+ * @brief Thread pool worker
+ *
+ * The workers will get passed the threadpool, and a user supplied argument.
+ * They can then repeatedly call thpool_get_work() on that pool, until
+ * thpool_quitting() returns 0.
+ */
+
+typdef void (*thpool_worker)(threadpool,void*)
 
 /**
  * @brief  Initialize threadpool
@@ -35,7 +44,7 @@ typedef struct thpool_* threadpool;
  * @return threadpool    created threadpool on success,
  *                       NULL on error
  */
-threadpool thpool_init(void (*)(void*), int num_threads);
+threadpool thpool_init(thpool_worker, int num_threads);
 
 
 /**
@@ -69,6 +78,42 @@ threadpool thpool_init(void (*)(void*), int num_threads);
  */
 int thpool_add_work(threadpool, void* arg_p);
 
+/**
+ * @brief Get work from the job queue
+ * 
+ * The worker for a thread should call this repeatedly, to get jobs
+ * to perform. If it returns 0, that means the pool is shutting down
+ * and the worker should cleanup, and exit.
+ *
+ * see thpool_add_work
+ * 
+ * @example
+ * 
+ *    void print_num(threadpool queue, int num){
+ *       printf("%d\n", num);
+ *       void* work;
+ *       
+ *       while(thpool_get_work(queue,&work)) {
+ *         
+ *         printf("work %d\n",(int)work);
+ *       }
+ *    }
+ * 
+ *    int main() {
+ *       ..
+ *       thpool_init((void*)print_num, 1234);
+ *       ..
+ *       int a = 10;
+ *       thpool_add_work(thpool, (void*)a);
+ *       ..
+ *    }
+ * 
+ * @param  threadpool    threadpool to get work from.
+ * @param  work          where to put the next job.
+ * @return NULL if should exit, otherwise thpool_add_work arg.
+ */
+ 
+void* thpool_get_work(thpool_* thpool_p, void** work);
 
 /**
  * @brief Wait for all queued jobs to finish
