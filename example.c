@@ -10,32 +10,30 @@
  * a decision of the OS.
  * 
  * */
+#include "thpool.h"
 
 #include <stdio.h>
 #include <pthread.h>
-#include "thpool.h"
+#include <stdint.h> // intptr_t
 
 
-void task1(){
-	printf("Thread #%u working on task1\n", (int)pthread_self());
-}
-
-
-void task2(){
-	printf("Thread #%u working on task2\n", (int)pthread_self());
+void worker(int job){
+	printf("Thread #%u working on task %d\n", (int)pthread_self(), job);
+	sleep(1);
+	printf("Thread #%u done with task %d\n", (int)pthread_self(), job);
 }
 
 
 int main(){
 	
 	puts("Making threadpool with 4 threads");
-	threadpool thpool = thpool_init(4);
+	threadpool thpool = thpool_init((void*)worker,4);
 
 	puts("Adding 40 tasks to threadpool");
 	int i;
 	for (i=0; i<20; i++){
-		thpool_add_work(thpool, (void*)task1, NULL);
-		thpool_add_work(thpool, (void*)task2, NULL);
+		thpool_add_work(thpool, (void*)((intptr_t)i<<1));
+		thpool_add_work(thpool, (void*)((intptr_t)(i<<1+1)));
 	};
 
 	puts("Killing threadpool");

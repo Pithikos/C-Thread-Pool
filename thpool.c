@@ -74,7 +74,7 @@ typedef struct thpool_{
 	volatile int num_threads_working;    /* threads currently working */
 	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
 	pthread_cond_t  threads_all_idle;    /* signal to thpool_wait     */
-    void*  (*handler)(void* arg);        /* function pointer          */
+    void*  (*worker)(void* arg);        /* function pointer          */
 	jobqueue*  jobqueue_p;               /* pointer to the job queue  */    
 } thpool_;
 
@@ -328,7 +328,7 @@ static void* thread_do(struct thread* thread_p){
 	pthread_mutex_unlock(&thpool_p->thcount_lock);
 
 	void (*func_buff)(void*) =
-	  thpool_p->handler;
+	  thpool_p->worker;
 
 	while(threads_keepalive){
 
