@@ -22,8 +22,10 @@
 
 #ifdef THPOOL_DEBUG
 #define THPOOL_DEBUG 1
+#define assert(a) if(!a) { fputs("assertion failed " #a,stderr); abort(); }
 #else
 #define THPOOL_DEBUG 0
+#define assert(a)
 #endif
 
 static volatile int threads_keepalive;

@@ -31,6 +31,9 @@ typedef void (*thpool_worker)(threadpool,void*);
  * 
  * Initializes a threadpool. This function will not return untill all
  * threads have initialized successfully.
+ *
+ * NOTE: arg parameter is just because I'm absolutely paranoid about C and
+ * closures. It's passed to all workers, and not locked, or thread safe!
  * 
  * @example
  * 
