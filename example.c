@@ -18,9 +18,9 @@
 
 
 void worker(int job){
-	printf("Thread #%u working on task %d\n", (int)pthread_self(), job);
+	printf("Thread #%x working on task %d\n", ((uint16_t)pthread_self()) % 0x1000, job);
 	sleep(1);
-	printf("Thread #%u done with task %d\n", (int)pthread_self(), job);
+	printf("Thread #%x done with task %d\n", ((uint16_t)pthread_self()) % 0xf84, job);
 }
 
 
@@ -36,6 +36,7 @@ int main(){
 		thpool_add_work(thpool, (void*)((intptr_t)(i<<1+1)));
 	};
 
+	thpool_wait(thpool);
 	puts("Killing threadpool");
 	thpool_destroy(thpool);
 	
