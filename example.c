@@ -17,10 +17,16 @@
 #include <stdint.h> // intptr_t
 
 
-void worker(int job){
-	printf("Thread #%x working on task %d\n", ((uint16_t)pthread_self()) % 0x1000, job);
+void worker(threadpool queue, int who) {
+  printf("Thread #%d starting! (%p)",pthread_self());
+  void* work; // work MUST be at least the size of a void* or segfault!
+  while(thpool_get_work(queue,&work)) {
+	int job = (int) work;
+	printf("Thread #%d working on task %d (%p)\n", who, job, pthread_self());
 	sleep(1);
-	printf("Thread #%x done with task %d\n", ((uint16_t)pthread_self()) % 0xf84, job);
+	printf("Thread #%d done with task %d\n", who, job);
+  }
+  printf("Thread #%d cleaning up", who);
 }
 
 

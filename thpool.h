@@ -24,7 +24,7 @@ typedef struct thpool_* threadpool;
  * thpool_quitting() returns 0.
  */
 
-typdef void (*thpool_worker)(threadpool,void*)
+typedef void (*thpool_worker)(threadpool,void*);
 
 /**
  * @brief  Initialize threadpool
@@ -39,13 +39,13 @@ typdef void (*thpool_worker)(threadpool,void*)
  *    thpool = thpool_init(worker,4);               //then we initialize it to 4 threads
  *    ..
  * 
- * @param  function_p    pointer to function to add as work
  * @param  num_threads   number of threads to be created in the threadpool
+ * @param  worker    pointer to function to process work
+ * @param  arg       argument to pass to worker on startup.
  * @return threadpool    created threadpool on success,
  *                       NULL on error
  */
-threadpool thpool_init(thpool_worker, int num_threads);
-
+threadpool thpool_init(int num_threads, thpool_worker worker, void* arg);
 
 /**
  * @brief Add work to the job queue
@@ -110,10 +110,10 @@ int thpool_add_work(threadpool, void* arg_p);
  * 
  * @param  threadpool    threadpool to get work from.
  * @param  work          where to put the next job.
- * @return NULL if should exit, otherwise thpool_add_work arg.
+ * @return 0 if should exit, otherwise amount of retries waiting for jobs
  */
  
-void* thpool_get_work(thpool_* thpool_p, void** work);
+short thpool_get_work(threadpool queue, void** work);
 
 /**
  * @brief Wait for all queued jobs to finish

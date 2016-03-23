@@ -74,7 +74,8 @@ typedef struct thpool_{
 	volatile int num_threads_working;    /* threads currently working */
 	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
 	pthread_cond_t  threads_all_idle;    /* signal to thpool_wait     */
-    void*  (*worker)(void* arg);        /* function pointer          */
+    thpool_worker  worker;               /* function pointer          */
+	void* arg;                           /* udata for worker          */
 	jobqueue*  jobqueue_p;               /* pointer to the job queue  */    
 } thpool_;
 
@@ -106,7 +107,7 @@ static void  bsem_wait(struct bsem *bsem_p);
 
 
 /* Initialise thread pool */
-struct thpool_* thpool_init(int num_threads, void (*worker)(void*), void* arg) {
+struct thpool_* thpool_init(int num_threads, thpool_worker worker, void* arg) {
 
 	threads_on_hold   = 0;
 	threads_keepalive = 1;
@@ -184,7 +185,8 @@ int thpool_add_work(thpool_* thpool_p, void* arg_p){
 }
 
 /* get the next job from the queue (external interface) */
-void* thpool_get_work(thpool_* thpool_p) {
+short thpool_get_work(thpool_* thpool_p, void** arg) {
+  assert(arg);
   pthread_mutex_lock(&thpool_p->thcount_lock);
   --thpool_p->num_threads_working;
   if (!thpool_p->num_threads_working) {
@@ -192,25 +194,26 @@ void* thpool_get_work(thpool_* thpool_p) {
   }
   pthread_mutex_unlock(&thpool_p->thcount_lock);
 
+  int ntries = 1;
   while(threads_keepalive) {
 	bsem_wait(thpool_p->jobqueue_p->has_jobs);
 	pthread_mutex_lock(&thpool_p->jobqueue_p->rwmutex);
 	struct job* job = jobqueue_pull(thpool_p);
 	pthread_mutex_unlock(&thpool_p->jobqueue_p->rwmutex);
 	if(!job) {
-	  // cond_wait(someone_push_to_queue);
-	  sleep(1);
+	  ++ntries;
 	  continue;
 	}
-	void* arg = job->arg;
+	*arg = job->arg;
 	free(job);
 	pthread_mutex_lock(&thpool_p->thcount_lock);
 	++thpool_p->num_threads_working;
 	pthread_mutex_unlock(&thpool_p->thcount_lock);
-	return arg;
+	assert(ntries != 0);
+	return ntries;
   }
   // pthread_exit, and use pthread_cleanup_push for cleanup?
-  return NULL;
+  return 0;
 }
 
 /* Wait until all jobs have finished */
@@ -358,7 +361,7 @@ static void* thread_do(struct thread* thread_p){
 	++thpool_p->num_threads_working;
 	pthread_mutex_unlock(&thpool_p->thcount_lock);
 	
-	thpool_p->worker(thpool_p->arg);
+	thpool_p->worker(thpool_p, thpool_p->arg);
 
 	pthread_mutex_lock(&thpool_p->thcount_lock);
 	--thpool_p->num_threads_working;
