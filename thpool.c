@@ -269,7 +269,7 @@ static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 	
 	*thread_p = (struct thread*)malloc(sizeof(struct thread));
 	if (thread_p == NULL){
-		fprintf(stderr, "thpool_init(): Could not allocate memory for thread\n");
+		fprintf(stderr, "thread_init(): Could not allocate memory for thread\n");
 		return -1;
 	}
 
