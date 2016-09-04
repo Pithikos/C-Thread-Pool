@@ -45,7 +45,7 @@ typedef struct bsem {
 /* Job */
 typedef struct job{
 	struct job*  prev;                   /* pointer to previous job   */
-	void*  (*function)(void* arg);       /* function pointer          */
+	void   (*function)(void* arg);       /* function pointer          */
 	void*  arg;                          /* function's argument       */
 } job;
 
@@ -165,7 +165,7 @@ struct thpool_* thpool_init(int num_threads){
 
 
 /* Add work to the thread pool */
-int thpool_add_work(thpool_* thpool_p, void *(*function_p)(void*), void* arg_p){
+int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 	job* newjob;
 
 	newjob=(struct job*)malloc(sizeof(struct job));
@@ -342,8 +342,8 @@ static void* thread_do(struct thread* thread_p){
 			pthread_mutex_unlock(&thpool_p->thcount_lock);
 			
 			/* Read job from queue and execute it */
-			void*(*func_buff)(void* arg);
-			void*  arg_buff;
+			void (*func_buff)(void* arg);
+			void* arg_buff;
 			job* job_p;
 			pthread_mutex_lock(&thpool_p->jobqueue_p->rwmutex);
 			job_p = jobqueue_pull(thpool_p);
