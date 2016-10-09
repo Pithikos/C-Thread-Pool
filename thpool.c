@@ -27,7 +27,6 @@
 #endif
 
 static volatile int threads_keepalive;
-static volatile int threads_on_hold;
 
 
 
@@ -76,6 +75,7 @@ typedef struct thpool_{
 	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
 	pthread_cond_t  threads_all_idle;    /* signal to thpool_wait     */
 	jobqueue*  jobqueue_p;               /* pointer to the job queue  */    
+    int paused;                          /* thread pool is paused     */
 } thpool_;
 
 
@@ -112,7 +112,6 @@ static void  bsem_wait(struct bsem *bsem_p);
 /* Initialise thread pool */
 struct thpool_* thpool_init(int num_threads){
 
-	threads_on_hold   = 0;
 	threads_keepalive = 1;
 
 	if (num_threads < 0){
@@ -240,16 +239,24 @@ void thpool_destroy(thpool_* thpool_p){
 
 /* Pause all threads in threadpool */
 void thpool_pause(thpool_* thpool_p) {
-	int n;
+    /* construct signal handler values for this thread pool */
+    union sigval value;
+    value.sival_ptr = (void *)thpool_p;
+
+    /* mark threadpool as paused */
+    thpool_p->paused = 1;
+
+    /* send sigqueue with specific thpool */
+    int n;
 	for (n=0; n < thpool_p->num_threads_alive; n++){
-		pthread_kill(thpool_p->threads[n]->pthread, SIGUSR1);
+		pthread_sigqueue(thpool_p->threads[n]->pthread, SIGUSR1, value);
 	}
 }
 
 
 /* Resume all threads in threadpool */
 void thpool_resume(thpool_* thpool_p) {
-	threads_on_hold = 0;
+    thpool_p->paused = 0;
 }
 
 
@@ -282,12 +289,11 @@ static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 }
 
 
-/* Sets the calling thread on hold */
-static void thread_hold () {
-	threads_on_hold = 1;
-	while (threads_on_hold){
-		sleep(1);
-	}
+/* Holds thread until parent threadpool resumes */
+static void thread_hold (int signo, siginfo_t *info, void *extra) {
+    while (((struct thpool_*)(info->si_ptr))->paused){
+        sleep(1);
+    }
 }
 
 
@@ -320,8 +326,8 @@ static void* thread_do(struct thread* thread_p){
 	/* Register signal handler */
 	struct sigaction act;
 	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-	act.sa_handler = thread_hold;
+	act.sa_flags = SA_SIGINFO;
+	act.sa_sigaction = thread_hold;
 	if (sigaction(SIGUSR1, &act, NULL) == -1) {
 		fprintf(stderr, "thread_do(): cannot handle SIGUSR1");
 	}
