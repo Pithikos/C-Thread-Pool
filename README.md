@@ -37,7 +37,6 @@ you can use `thpool_wait(thpool);`. If you want to destroy the pool you can use
 `thpool_destroy(thpool);`.
 
 
-
 ## API
 
 For a deeper look into the documentation check in the [thpool.h](https://github.com/Pithikos/C-Thread-Pool/blob/master/thpool.h) file. Below is a fast practical overview.
