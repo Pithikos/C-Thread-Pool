@@ -158,6 +158,28 @@ void thpool_resume(threadpool);
  */
 void thpool_destroy(threadpool);
 
+
+/**
+ * @brief Show currently working threads
+ *
+ * Working threads are the threads that are performing work (not idle).
+ *
+ * @example
+ * int main() {
+ *    threadpool thpool1 = thpool_init(2);
+ *    threadpool thpool2 = thpool_init(2);
+ *    ..
+ *    printf("Working threads: %d\n", thpool_num_threads_working(thpool1));
+ *    ..
+ *    return 0;
+ * }
+ *
+ * @param threadpool     the threadpool of interest
+ * @return integer       number of threads working
+ */
+int thpool_num_threads_working(threadpool);
+
+
 #ifdef __cplusplus
 }
 #endif

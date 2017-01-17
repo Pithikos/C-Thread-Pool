@@ -253,6 +253,11 @@ void thpool_resume(thpool_* thpool_p) {
 }
 
 
+int thpool_num_threads_working(thpool_* thpool_p){
+	return thpool_p->num_threads_working;
+}
+
+
 
 
 

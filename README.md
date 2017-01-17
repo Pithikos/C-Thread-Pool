@@ -50,3 +50,4 @@ For a deeper look into the documentation check in the [thpool.h](https://github.
 | ***thpool_destroy(thpool)***    | This will destroy the threadpool. If jobs are currently being executed, then it will wait for them to finish. |
 | ***thpool_pause(thpool)***      | All threads in the threadpool will pause no matter if they are idle or executing work. |
 | ***thpool_resume(thpool)***      | If the threadpool is paused, then all threads will resume from where they were.   |
+| ***thpool_num_threads_working(thpool)***  | Will return the number of currently working threads.   |
