@@ -431,10 +431,10 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 		default: /* if jobs in queue */
 					jobqueue_p->rear->prev = newjob;
 					jobqueue_p->rear = newjob;
-					
+
 	}
 	jobqueue_p->len++;
-	
+
 	bsem_post(jobqueue_p->has_jobs);
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 }
@@ -453,7 +453,7 @@ static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 	job* job_p = jobqueue_p->front;
 
 	switch(jobqueue_p->len){
-		
+
 		case 0:  /* if no jobs in queue */
 		  			break;
 
@@ -468,7 +468,7 @@ static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 					jobqueue_p->len--;
 					/* more than one job in queue -> post it */
 					bsem_post(jobqueue_p->has_jobs);
-					
+
 	}
 
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
