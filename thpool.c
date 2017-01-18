@@ -342,7 +342,7 @@ static void* thread_do(struct thread* thread_p){
 			pthread_mutex_unlock(&thpool_p->thcount_lock);
 
 			/* Read job from queue and execute it */
-			void*(*func_buff)(void* arg);
+			void (*func_buff)(void*);
 			void*  arg_buff;
 			job* job_p = jobqueue_pull(&thpool_p->jobqueue);
 			if (job_p) {
