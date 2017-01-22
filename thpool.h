@@ -34,7 +34,7 @@ typedef struct thpool_* threadpool;
  * @return threadpool    created threadpool on success,
  *                       NULL on error
  */
-threadpool thpool_init(int num_threads);
+threadpool thpool_init(unsigned num_threads, unsigned num_jobs);
 
 
 /**
