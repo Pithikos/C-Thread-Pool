@@ -56,6 +56,14 @@ typedef struct job{
 } job;
 
 
+/* Job pool */
+typedef struct jobpool{
+    job *front;                          /* pointer to front of pool  */
+    int available_jobs;                  /* check if more are needed  */
+    pthread_mutex_t lock;                /* used for job count etc    */
+} jobpool;
+
+
 /* Job queue */
 typedef struct jobqueue{
 	pthread_mutex_t rwmutex;             /* used for queue r/w access */
@@ -95,6 +103,11 @@ static int  thread_init(thpool_* thpool_p, struct thread** thread_p, int id);
 static void* thread_do(struct thread* thread_p);
 static void  thread_hold();
 static void  thread_destroy(struct thread* thread_p);
+
+static int jobpool_init(jobpool* jobpool_p, int num);
+static struct job *jobpool_pull(jobpool* jobpool_p);
+static void jobpool_push(jobpool* jobpool_p, struct job *job_p);
+static void jobpool_destroy(jobpool* jobpool_p);
 
 static int   jobqueue_init(jobqueue* jobqueue_p);
 static void  jobqueue_clear(jobqueue* jobqueue_p);
@@ -260,6 +273,84 @@ int thpool_num_threads_working(thpool_* thpool_p){
 }
 
 
+
+/* ==========================   JOBPOOL  ============================ */
+
+/* Initialise job pool */
+static int jobpool_init(jobpool* jobpool_p, int num){
+    if(jobpool_p == NULL){
+        print_error("jobpool_init(): Cannot pass NULL pointer as job pool.\n");
+        return -1;
+    }
+
+    jobpool_p->front = NULL;
+	pthread_mutex_init(&jobpool_p->lock, NULL);
+
+    int active_jobs;
+    for(active_jobs = 0; active_jobs < num; active_jobs++){
+        struct job *temp = malloc(sizeof *temp);
+        if(temp == NULL){
+            // not sure if this should fail entirely and free all jobs
+            // or fail silently and move on despite the memory issues
+            break;
+        }
+        temp->function = NULL;
+        temp->arg = NULL;
+        temp->prev = jobpool_p->front;
+        jobpool_p->front = temp;
+    }
+
+    return 0;
+}
+
+static struct job *jobpool_pull(jobpool* jobpool_p){
+    if(jobpool_p == NULL){
+        print_error("jobpool_pull(): Cannot pass NULL pointer as job pool.\n");
+        return NULL;
+    }
+
+    pthread_mutex_lock(&jobpool_p->lock);
+    struct job *ret = jobpool_p->front;
+    if(ret == NULL){
+#if THPOOL_DEBUG
+        print_error("jobpool_pull(): New job added to the pool.\n");
+#endif
+        if((ret = malloc(sizeof *ret)) != NULL){
+            print_error("jobpool_pull(): Could not allocate memory for new job\n");
+            return NULL;
+        }
+    } else{
+        jobpool_p->front = ret->prev;
+    }
+    pthread_mutex_unlock(&jobpool_p->lock);
+
+    return ret;
+}
+
+static void jobpool_push(jobpool* jobpool_p, struct job *job_p){
+    if(jobpool_p == NULL || job_p == NULL){
+        print_error("jobpool_push(): Cannot pass NULL pointer as job pool.\n");
+        return;
+    }
+
+    pthread_mutex_lock(&jobpool_p->lock);
+    job_p->prev = jobpool_p->front;
+    jobpool_p->front = job_p;
+    pthread_mutex_unlock(&jobpool_p->lock);
+}
+
+static void jobpool_destroy(jobpool* jobpool_p){
+    if(jobpool_p == NULL){
+        print_error("jobpool_destroy(): Cannot pass NULL pointer as job pool.\n");
+        return;
+    }
+
+    while(jobpool_p->front != NULL){
+        struct job *temp = jobpool_p->front;
+        jobpool_p->front = jobpool_p->front->prev;
+        free(temp);
+    }
+}
 
 
 
