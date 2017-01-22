@@ -310,7 +310,7 @@ static void* thread_do(struct thread* thread_p){
 	prctl(PR_SET_NAME, thread_name);
 #elif defined(__APPLE__) && defined(__MACH__)
 	pthread_setname_np(thread_name);
-#else
+#elif THPOOL_DEBUG
 	fprintf(stderr, "thread_do(): pthread_setname_np is not supported on this system");
 #endif
 
