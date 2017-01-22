@@ -123,7 +123,9 @@ struct thpool_* thpool_init(int num_threads){
 	thpool_* thpool_p;
 	thpool_p = (struct thpool_*)malloc(sizeof(struct thpool_));
 	if (thpool_p == NULL){
+#if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
 		fprintf(stderr, "thpool_init(): Could not allocate memory for thread pool\n");
+#endif
 		return NULL;
 	}
 	thpool_p->num_threads_alive   = 0;
@@ -131,7 +133,9 @@ struct thpool_* thpool_init(int num_threads){
 
 	/* Initialise the job queue */
 	if (jobqueue_init(&thpool_p->jobqueue) == -1){
+#if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
 		fprintf(stderr, "thpool_init(): Could not allocate memory for job queue\n");
+#endif
 		free(thpool_p);
 		return NULL;
 	}
@@ -139,7 +143,9 @@ struct thpool_* thpool_init(int num_threads){
 	/* Make threads in pool */
 	thpool_p->threads = (struct thread**)malloc(num_threads * sizeof(struct thread *));
 	if (thpool_p->threads == NULL){
+#if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
 		fprintf(stderr, "thpool_init(): Could not allocate memory for threads\n");
+#endif
 		jobqueue_destroy(&thpool_p->jobqueue);
 		free(thpool_p);
 		return NULL;
@@ -152,8 +158,9 @@ struct thpool_* thpool_init(int num_threads){
 	int n;
 	for (n=0; n<num_threads; n++){
 		thread_init(thpool_p, &thpool_p->threads[n], n);
-		if (THPOOL_DEBUG)
+#if THPOOL_DEBUG
 			printf("THPOOL_DEBUG: Created thread %d in pool \n", n);
+#endif
 	}
 
 	/* Wait for threads to initialize */
@@ -169,7 +176,9 @@ int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 
 	newjob=(struct job*)malloc(sizeof(struct job));
 	if (newjob==NULL){
+#if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
 		fprintf(stderr, "thpool_add_work(): Could not allocate memory for new job\n");
+#endif
 		return -1;
 	}
 
@@ -269,7 +278,9 @@ static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 
 	*thread_p = (struct thread*)malloc(sizeof(struct thread));
 	if (thread_p == NULL){
+#if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
 		fprintf(stderr, "thread_init(): Could not allocate memory for thread\n");
+#endif
 		return -1;
 	}
 
@@ -322,8 +333,10 @@ static void* thread_do(struct thread* thread_p){
 	sigemptyset(&act.sa_mask);
 	act.sa_flags = 0;
 	act.sa_handler = thread_hold;
+#if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
 	if (sigaction(SIGUSR1, &act, NULL) == -1) {
 		fprintf(stderr, "thread_do(): cannot handle SIGUSR1");
+#endif
 	}
 
 	/* Mark thread as alive (initialized) */
@@ -492,7 +505,9 @@ static void jobqueue_destroy(jobqueue* jobqueue_p){
 /* Init semaphore to 1 or 0 */
 static void bsem_init(bsem *bsem_p, int value) {
 	if (value < 0 || value > 1) {
+#if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
 		fprintf(stderr, "bsem_init(): Binary semaphore can take only values 1 or 0");
+#endif
 		exit(1);
 	}
 	pthread_mutex_init(&(bsem_p->mutex), NULL);
