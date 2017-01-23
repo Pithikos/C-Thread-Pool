@@ -5,7 +5,10 @@
 # valgrind is used so make sure you have it installed
 #
 
-. funcs.sh
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+
+. $DIR/funcs.sh
 
 
 # ---------------------------- Tests -----------------------------------
@@ -13,8 +16,8 @@
 
 function test_pause_resume_est7secs { #threads
 	echo "Pause and resume test for 7 secs with $1 threads"
-	compile src/pause_resume.c
-	realsecs=$(/usr/bin/time -f '%e' ./test "$1" 2>&1 > /dev/null)
+	compile $DIR/src/pause_resume.c
+	realsecs=$(/usr/bin/time -f '%e' $DIR/test "$1" 2>&1 > /dev/null)
 	threshold=1.00 # in secs
 	
 	ret=$(python -c "print(($realsecs-7)<=$threshold)")

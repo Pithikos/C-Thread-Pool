@@ -5,7 +5,10 @@
 # valgrind is used so make sure you have it installed
 #
 
-. funcs.sh
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+
+. $DIR/funcs.sh
 
 
 # ---------------------------- Tests -----------------------------------
@@ -13,8 +16,8 @@
 
 function test_wait_each_job { #threads #jobs
 	echo "Will test waiting for each job ($1 threads, $2 jobs)"
-	compile src/wait.c
-	realsecs=$(time_exec ./test $2 $1 1)
+	compile $DIR/src/wait.c
+	realsecs=$(time_exec $DIR/test $2 $1 1)
 	threshold=1.00 # in secs
 
 	ret=$(python -c "print((abs($realsecs-$2))<=$threshold)")
@@ -29,8 +32,8 @@ function test_wait_each_job { #threads #jobs
 
 function test_wait_pool { #threads #jobs
 	echo "Will test waiting for whole threadpool ($1 threads, $2 jobs)"
-	compile src/wait.c
-	realsecs=$(time_exec ./test $2 $1 0)
+	compile $DIR/src/wait.c
+	realsecs=$(time_exec $DIR/test $2 $1 0)
 	threshold=1.00 # in secs
 	
 	expected_time=$(python -c "import math; print(math.ceil($2/$1.0))")

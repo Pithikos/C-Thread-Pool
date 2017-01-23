@@ -35,7 +35,7 @@ int main(int argc, char *argv[]){
 	int wait_each_job    = argv[3] ? strtol(argv[3], &p, 10) : 0;
 	int sleep_per_thread = argv[4] ? strtol(argv[4], &p, 10) : 1;
 
-	threadpool thpool = thpool_init(num_threads);
+	threadpool thpool = thpool_init(num_threads, num_jobs);
 
 	int n;
 	for (n=0; n<num_jobs; n++){

@@ -41,7 +41,7 @@ int main(){
 	nonzero_heap();
 
 	puts("Making threadpool with 4 threads");
-	threadpool thpool = thpool_init(4);
+	threadpool thpool = thpool_init(4, 20);
 
 	puts("Adding 20 tasks to threadpool");
 	int i;

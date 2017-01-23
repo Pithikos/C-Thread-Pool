@@ -9,7 +9,10 @@
 
 # ---------------------------- Tests -----------------------------------
 
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+
 COMPILATION_FLAGS='-g -O'
-. normal_compile.sh
+. $DIR/normal_compile.sh
 
 echo "No optimization errors"

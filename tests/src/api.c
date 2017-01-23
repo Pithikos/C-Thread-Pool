@@ -17,7 +17,7 @@ int main(int argc, char *argv[]){
 	threadpool thpool;
 
 	/* Test if we can get the current number of working threads */
-	thpool = thpool_init(10);
+	thpool = thpool_init(10, 4);
 	thpool_add_work(thpool, (void*)sleep_2_secs, NULL);
 	thpool_add_work(thpool, (void*)sleep_2_secs, NULL);
 	thpool_add_work(thpool, (void*)sleep_2_secs, NULL);
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
 	};
 
 	/* Test (same as above) */
-	thpool = thpool_init(5);
+	thpool = thpool_init(5, 2);
 	thpool_add_work(thpool, (void*)sleep_2_secs, NULL);
 	thpool_add_work(thpool, (void*)sleep_2_secs, NULL);
 	sleep(1);
