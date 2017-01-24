@@ -53,7 +53,6 @@ typedef struct job{
 /* Job pool */
 typedef struct jobpool{
     job *front;                          /* pointer to front of pool  */
-    int available_jobs;                  /* check if more are needed  */
     pthread_mutex_t lock;                /* used for job count etc    */
 } jobpool;
 
@@ -273,6 +272,18 @@ void thpool_resume(thpool_* thpool_p) {
 
 int thpool_num_threads_working(thpool_* thpool_p){
 	return thpool_p->num_threads_working;
+}
+
+
+int thpool_num_jobs_pooled(thpool_* thpool_p){
+    pthread_mutex_lock(&thpool_p->jobpool.lock);
+    int result = 0;
+    struct job *cur = thpool_p->jobpool.front;
+    while(cur != NULL){
+        result++;
+        cur = cur->prev;
+    }
+    pthread_mutex_unlock(&thpool_p->jobpool.lock);
 }
 
 
