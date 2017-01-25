@@ -188,6 +188,35 @@ void thpool_destroy(threadpool);
 int thpool_num_threads_working(threadpool);
 
 
+/**
+ * @brief Show currently pooled jobs.
+ *
+ * Pooled jobs are the ones sitting quietly in the pool,
+ * not queued and not being worked on.
+ *
+ * Might be useful to fine tune how many jobs you need
+ * to setup initially for certain tasks.
+ *
+ * @example
+ * int main() {
+ *    threadpool thpool1 = thpool_init(2, 3);
+ *    threadpool thpool2 = thpool_init(2, 10);
+ *    ...
+ *    // do your thing here
+ *    ...
+ *    thpool_wait(thpool1);
+ *    thpool_wait(thpool2);
+ *    printf("Jobs in pool: %d\n", thpool_num_jobs_pooled(thpool1));  // prints 3
+ *    printf("Jobs in pool: %d\n", thpool_num_jobs_pooled(thpool2));  // prints 10
+ *    return 0;
+ * }
+ *
+ * @param threadpool     the threadpool of interest
+ * @return integer       number of jobs in pool
+ */
+int thpool_num_jobs_pooled(threadpool);
+
+
 #ifdef __cplusplus
 }
 #endif
