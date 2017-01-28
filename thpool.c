@@ -284,6 +284,7 @@ int thpool_num_jobs_pooled(thpool_* thpool_p){
         cur = cur->prev;
     }
     pthread_mutex_unlock(&thpool_p->jobpool.lock);
+    return result;
 }
 
 
