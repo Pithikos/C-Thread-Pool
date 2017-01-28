@@ -50,3 +50,14 @@ For a deeper look into the documentation check in the [thpool.h](https://github.
 | ***thpool_pause(thpool)***      | All threads in the threadpool will pause no matter if they are idle or executing work. |
 | ***thpool_resume(thpool)***      | If the threadpool is paused, then all threads will resume from where they were.   |
 | ***thpool_num_threads_working(thpool)***  | Will return the number of currently working threads.   |
+
+
+## Contribution
+
+You are very welcome to contribute. If you have a new feature in mind, you can always open an issue on github describing it so you don't end up doing a lot of work that might not be eventually merged. Generally we are very open to contributions as long as they follow the below keypoints.
+
+* Try to keep the API as minimal as possible. That means if a feature or fix can be implemented without affecting the existing API but requires more development time, then we will opt to sacrifice development time.
+* Solutions need to be POSIX compliant. The thread-pool is advertised as such so it makes sense that it actually is.
+* For coding style simply try to stick to the conventions you find in the existing codebase.
+* Tests: A new fix (and sometimes a feature) should be covered by tests. If the existing tests are not sufficient, we expect an according test to follow with the pull request.
+* Documentation: for a new feature please add documentation. For an API change the documentation has to be thorough and super easy to understand.
