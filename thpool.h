@@ -7,6 +7,8 @@
 #ifndef _THPOOL_
 #define _THPOOL_
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,7 +44,7 @@ typedef struct thpool_* threadpool;
  * @return threadpool    created threadpool on success,
  *                       NULL on error
  */
-threadpool thpool_init(unsigned num_threads, unsigned num_jobs);
+threadpool thpool_init(size_t num_threads, size_t num_jobs);
 
 
 /**
