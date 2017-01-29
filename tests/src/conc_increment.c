@@ -20,13 +20,13 @@ int main(int argc, char *argv[]){
 	
 	char* p;
 	if (argc != 3){
-		puts("This testfile needs excactly two arguments");
+		puts("This testfile needs exactly two arguments");
 		exit(1);
 	}
 	int num_jobs    = strtol(argv[1], &p, 10);
 	int num_threads = strtol(argv[2], &p, 10);
 
-	threadpool thpool = thpool_init(num_threads);
+	threadpool thpool = thpool_init(num_threads, num_jobs);
 	
 	int n;
 	for (n=0; n<num_jobs; n++){

@@ -5,6 +5,9 @@
 # want to use any of the functions
 #
 
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+
 function assure_installed_valgrind {
     valgrind --version &> /dev/null
     if (( $? != 0 )); then
@@ -42,11 +45,11 @@ function time_exec { #command ..
 function err { #string #log
 	echo "------------------- ERROR ------------------------"
 	echo "$1"
-	echo "$2" >> error.log
+	echo "$2" >> $DIR/error.log
 	exit 1
 }
 
 
 function compile { #cfilepath
-	gcc $COMPILATION_FLAGS "$1" ../thpool.c -D THPOOL_DEBUG -pthread -o test
+	gcc $COMPILATION_FLAGS "$1" $DIR/../thpool.c -D THPOOL_DEBUG -pthread -o $DIR/test
 }

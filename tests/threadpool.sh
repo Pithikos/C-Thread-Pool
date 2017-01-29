@@ -5,13 +5,16 @@
 # might use in his/her code
 #
 
-. funcs.sh
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+
+. $DIR/funcs.sh
 
 
 function test_mass_addition { #endsum #threads
 	echo "Adding up to $1 with $2 threads"
-	compile src/conc_increment.c
-	output=$(./test $1 $2)
+	compile $DIR/src/conc_increment.c
+	output=$($DIR/test $1 $2)
 	num=$(echo $output | awk '{print $(NF)}')
 	if [ "$num" == "$1" ]; then
 		return
@@ -23,7 +26,7 @@ function test_mass_addition { #endsum #threads
 
 # Run tests
 test_mass_addition 100 4
-test_mass_addition 100 1000
-test_mass_addition 100000 1000
+test_mass_addition 100 100
+test_mass_addition 100000 100
 
 echo "No errors"

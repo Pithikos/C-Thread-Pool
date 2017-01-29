@@ -20,12 +20,6 @@
 #endif
 #include "thpool.h"
 
-#ifdef THPOOL_DEBUG
-#define THPOOL_DEBUG 1
-#else
-#define THPOOL_DEBUG 0
-#endif
-
 #if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
 #define print_error(msg) fprintf(stderr, msg)
 #else
@@ -56,13 +50,20 @@ typedef struct job{
 } job;
 
 
+/* Job pool */
+typedef struct jobpool{
+    job *front;                          /* pointer to front of pool  */
+    pthread_mutex_t lock;                /* used for job count etc    */
+} jobpool;
+
+
 /* Job queue */
 typedef struct jobqueue{
 	pthread_mutex_t rwmutex;             /* used for queue r/w access */
 	job  *front;                         /* pointer to front of queue */
 	job  *rear;                          /* pointer to rear  of queue */
 	bsem *has_jobs;                      /* flag as binary semaphore  */
-	int   len;                           /* number of jobs in queue   */
+	size_t len;                          /* number of jobs in queue   */
 } jobqueue;
 
 
@@ -77,11 +78,12 @@ typedef struct thread{
 /* Threadpool */
 typedef struct thpool_{
 	thread**   threads;                  /* pointer to threads        */
-	volatile int num_threads_alive;      /* threads currently alive   */
-	volatile int num_threads_working;    /* threads currently working */
+	volatile size_t num_threads_alive;   /* threads currently alive   */
+	volatile size_t num_threads_working; /* threads currently working */
 	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
 	pthread_cond_t  threads_all_idle;    /* signal to thpool_wait     */
 	jobqueue  jobqueue;                  /* job queue                 */
+    jobpool  jobpool;                    /* job pool                  */
 } thpool_;
 
 
@@ -95,6 +97,11 @@ static int  thread_init(thpool_* thpool_p, struct thread** thread_p, int id);
 static void* thread_do(struct thread* thread_p);
 static void  thread_hold();
 static void  thread_destroy(struct thread* thread_p);
+
+static int jobpool_init(jobpool* jobpool_p, size_t num);
+static struct job *jobpool_pull(jobpool* jobpool_p);
+static void jobpool_push(jobpool* jobpool_p, struct job *job_p);
+static void jobpool_destroy(jobpool* jobpool_p);
 
 static int   jobqueue_init(jobqueue* jobqueue_p);
 static void  jobqueue_clear(jobqueue* jobqueue_p);
@@ -116,14 +123,10 @@ static void  bsem_wait(struct bsem *bsem_p);
 
 
 /* Initialise thread pool */
-struct thpool_* thpool_init(int num_threads){
+struct thpool_* thpool_init(size_t num_threads, size_t num_jobs){
 
 	threads_on_hold   = 0;
 	threads_keepalive = 1;
-
-	if (num_threads < 0){
-		num_threads = 0;
-	}
 
 	/* Make new thread pool */
 	thpool_* thpool_p;
@@ -142,11 +145,19 @@ struct thpool_* thpool_init(int num_threads){
 		return NULL;
 	}
 
+    if(jobpool_init(&thpool_p->jobpool, num_jobs) != 0){
+        print_error("thpool_init(): Could not allocate memory for job pool.\n");
+		jobqueue_destroy(&thpool_p->jobqueue);
+        free(thpool_p);
+        return NULL;
+    }
+
 	/* Make threads in pool */
 	thpool_p->threads = (struct thread**)malloc(num_threads * sizeof(struct thread *));
 	if (thpool_p->threads == NULL){
 		print_error("thpool_init(): Could not allocate memory for threads\n");
 		jobqueue_destroy(&thpool_p->jobqueue);
+        jobpool_destroy(&thpool_p->jobpool);
 		free(thpool_p);
 		return NULL;
 	}
@@ -155,10 +166,10 @@ struct thpool_* thpool_init(int num_threads){
 	pthread_cond_init(&thpool_p->threads_all_idle, NULL);
 
 	/* Thread init */
-	int n;
-	for (n=0; n<num_threads; n++){
+	size_t n;
+	for (n = 0; n < num_threads; n++){
 		thread_init(thpool_p, &thpool_p->threads[n], n);
-#if THPOOL_DEBUG
+#if defined(THPOOL_DEBUG)
 			printf("THPOOL_DEBUG: Created thread %d in pool \n", n);
 #endif
 	}
@@ -174,8 +185,8 @@ struct thpool_* thpool_init(int num_threads){
 int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 	job* newjob;
 
-	newjob=(struct job*)malloc(sizeof(struct job));
-	if (newjob==NULL){
+	newjob = jobpool_pull(&thpool_p->jobpool);
+	if (newjob == NULL){
 		print_error("thpool_add_work(): Could not allocate memory for new job\n");
 		return -1;
 	}
@@ -230,6 +241,10 @@ void thpool_destroy(thpool_* thpool_p){
 
 	/* Job queue cleanup */
 	jobqueue_destroy(&thpool_p->jobqueue);
+
+    /* Job pool cleanup */
+    jobpool_destroy(&thpool_p->jobpool);
+
 	/* Deallocs */
 	int n;
 	for (n=0; n < threads_total; n++){
@@ -242,7 +257,7 @@ void thpool_destroy(thpool_* thpool_p){
 
 /* Pause all threads in threadpool */
 void thpool_pause(thpool_* thpool_p) {
-	int n;
+	size_t n;
 	for (n=0; n < thpool_p->num_threads_alive; n++){
 		pthread_kill(thpool_p->threads[n]->pthread, SIGUSR1);
 	}
@@ -260,6 +275,97 @@ int thpool_num_threads_working(thpool_* thpool_p){
 }
 
 
+int thpool_num_jobs_pooled(thpool_* thpool_p){
+    pthread_mutex_lock(&thpool_p->jobpool.lock);
+    int result = 0;
+    struct job *cur = thpool_p->jobpool.front;
+    while(cur != NULL){
+        result++;
+        cur = cur->prev;
+    }
+    pthread_mutex_unlock(&thpool_p->jobpool.lock);
+    return result;
+}
+
+
+
+/* ==========================   JOBPOOL  ============================ */
+
+/* Initialise job pool */
+static int jobpool_init(jobpool* jobpool_p, size_t num){
+    if(jobpool_p == NULL){
+        print_error("jobpool_init(): Cannot pass NULL pointer as job pool.\n");
+        return -1;
+    }
+
+    jobpool_p->front = NULL;
+	pthread_mutex_init(&jobpool_p->lock, NULL);
+
+    size_t active_jobs;
+    for(active_jobs = 0; active_jobs < num; active_jobs++){
+        struct job *temp = malloc(sizeof *temp);
+        if(temp == NULL){
+            // not sure if this should fail entirely and free all jobs
+            // or fail silently and move on despite the memory issues
+            break;
+        }
+        temp->function = NULL;
+        temp->arg = NULL;
+        temp->prev = jobpool_p->front;
+        jobpool_p->front = temp;
+    }
+
+    return 0;
+}
+
+static struct job *jobpool_pull(jobpool* jobpool_p){
+    if(jobpool_p == NULL){
+        print_error("jobpool_pull(): Cannot pass NULL pointer as job pool.\n");
+        return NULL;
+    }
+
+    pthread_mutex_lock(&jobpool_p->lock);
+    struct job *ret = jobpool_p->front;
+    if(ret == NULL){
+#if defined(THPOOL_DEBUG)
+        printf("THPOOL_DEBUG: New job added to the pool.\n");
+#endif
+        if((ret = malloc(sizeof *ret)) == NULL){
+            print_error("jobpool_pull(): Could not allocate memory for new job\n");
+            return NULL;
+        }
+    } else{
+        jobpool_p->front = ret->prev;
+    }
+    pthread_mutex_unlock(&jobpool_p->lock);
+
+    return ret;
+}
+
+static void jobpool_push(jobpool* jobpool_p, struct job *job_p){
+    if(jobpool_p == NULL || job_p == NULL){
+        print_error("jobpool_push(): Cannot pass NULL pointer as job pool.\n");
+        return;
+    }
+
+    pthread_mutex_lock(&jobpool_p->lock);
+    job_p->prev = jobpool_p->front;
+    jobpool_p->front = job_p;
+    pthread_mutex_unlock(&jobpool_p->lock);
+}
+
+static void jobpool_destroy(jobpool* jobpool_p){
+    if(jobpool_p == NULL){
+        print_error("jobpool_destroy(): Cannot pass NULL pointer as job pool.\n");
+        return;
+    }
+
+    while(jobpool_p->front != NULL){
+        struct job *temp = jobpool_p->front;
+        jobpool_p->front = jobpool_p->front->prev;
+        free(temp);
+    }
+}
 
 
 
@@ -356,7 +462,7 @@ static void* thread_do(struct thread* thread_p){
 				func_buff = job_p->function;
 				arg_buff  = job_p->arg;
 				func_buff(arg_buff);
-				free(job_p);
+                jobpool_push(&thpool_p->jobpool, job_p);
 			}
 
 			pthread_mutex_lock(&thpool_p->thcount_lock);

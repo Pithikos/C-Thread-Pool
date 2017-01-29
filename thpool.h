@@ -7,6 +7,8 @@
 #ifndef _THPOOL_
 #define _THPOOL_
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,21 +22,29 @@ typedef struct thpool_* threadpool;
 /**
  * @brief  Initialize threadpool
  *
- * Initializes a threadpool. This function will not return untill all
+ * Initializes a threadpool. This function will not return until all
  * threads have initialized successfully.
+ *
+ * The arguments refer to the number of threads that will exist in
+ * the pool and to the number of jobs that will be initially created
+ * in the pool. Please note that, if necessary due to workload, more
+ * jobs will be created and added to the pool dinamically to fulfill 
+ * that need.
  *
  * @example
  *
  *    ..
  *    threadpool thpool;                     //First we declare a threadpool
- *    thpool = thpool_init(4);               //then we initialize it to 4 threads
+ *    thpool = thpool_init(4, 0);            //then we initialize the pool to 
+ *                                           // 4 threads and 0 jobs
  *    ..
  *
  * @param  num_threads   number of threads to be created in the threadpool
+ * @param  num_jobs      number of jobs to be initially created in the threadpool
  * @return threadpool    created threadpool on success,
  *                       NULL on error
  */
-threadpool thpool_init(int num_threads);
+threadpool thpool_init(size_t num_threads, size_t num_jobs);
 
 
 /**
@@ -178,6 +188,35 @@ void thpool_destroy(threadpool);
  * @return integer       number of threads working
  */
 int thpool_num_threads_working(threadpool);
+
+
+/**
+ * @brief Show currently pooled jobs.
+ *
+ * Pooled jobs are the ones sitting quietly in the pool,
+ * not queued and not being worked on.
+ *
+ * Might be useful to fine tune how many jobs you need
+ * to setup initially for certain tasks.
+ *
+ * @example
+ * int main() {
+ *    threadpool thpool1 = thpool_init(2, 3);
+ *    threadpool thpool2 = thpool_init(2, 10);
+ *    ...
+ *    // do your thing here
+ *    ...
+ *    thpool_wait(thpool1);
+ *    thpool_wait(thpool2);
+ *    printf("Jobs in pool: %d\n", thpool_num_jobs_pooled(thpool1));  // prints 3
+ *    printf("Jobs in pool: %d\n", thpool_num_jobs_pooled(thpool2));  // prints 10
+ *    return 0;
+ * }
+ *
+ * @param threadpool     the threadpool of interest
+ * @return integer       number of jobs in pool
+ */
+int thpool_num_jobs_pooled(threadpool);
 
 
 #ifdef __cplusplus

@@ -5,7 +5,10 @@
 # works to an acceptable standard.
 #
 
-. funcs.sh
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+
+. $DIR/funcs.sh
 
 
 # ---------------------------- Tests -----------------------------------
@@ -13,8 +16,8 @@
 
 function test_api {
 	echo "Testing API calls.."
-	compile src/api.c
-	output=`./test`
+	compile $DIR/src/api.c
+	output=`$DIR/test`
 	if [[ $? != 0 ]]; then
 		 err "$output" "$output"
 		 exit 1

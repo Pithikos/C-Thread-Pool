@@ -8,11 +8,14 @@
 
 # ---------------------------- Tests -----------------------------------
 
-. threadpool.sh
-. api.sh
-. pause_resume.sh
-. heap_stack_garbage.sh
-. memleaks.sh
-. wait.sh
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+
+. $DIR/threadpool.sh
+. $DIR/api.sh
+. $DIR/pause_resume.sh
+. $DIR/heap_stack_garbage.sh
+. $DIR/memleaks.sh
+. $DIR/wait.sh
 
 echo "No errors"

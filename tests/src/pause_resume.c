@@ -24,12 +24,12 @@ int main(int argc, char *argv[]){
 
 	char* p;
 	if (argc != 2){
-		puts("This testfile needs excactly one arguments");
+		puts("This testfile needs exactly one arguments");
 		exit(1);
 	}
 	int num_threads = strtol(argv[1], &p, 10);
 
-	threadpool thpool = thpool_init(num_threads);
+	threadpool thpool = thpool_init(num_threads, num_threads);
 	
 	thpool_pause(thpool);
 	
