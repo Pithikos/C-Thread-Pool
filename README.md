@@ -13,7 +13,7 @@ The threadpool is under MIT license. Notice that this project took a considerabl
 
 I'm out of work. If this project reduced your development time please show your appreciation.
 
-https://www.paypal.com/en_US/i/btn/x-click-but21.gif
+[![Donate](https://www.paypal.com/en_US/i/btn/x-click-but21.gif)](https://www.paypal.me/seferidis)
 
 
 ## Run an example
