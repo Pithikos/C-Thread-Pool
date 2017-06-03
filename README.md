@@ -29,6 +29,33 @@ Then run the executable like this:
     ./example
 
 
+## Building with CMake
+
+While it is recommended to use the approach described above, this library also supports CMake builds,
+mainly for compatibility with other CMake builds and for users who end up using this in many projects.
+
+The only requirement is the `pthread` library. UNIX users should have it installed already and Windows
+users can get it either from the [Pthreads-Win32](https://www.sourceware.org/pthreads-win32/) project
+or, if they're using Mingw32/Cygwin, from their package managers.
+
+To build with CMake, clone this repository and `cd` into it's root folder. Run the following:
+
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
+This library should now be built in the `bin/` folder. To install it, simply:
+
+```
+sudo make install
+```
+
+MSVC users should look into CMake's documentation for their generator.
+
+
 ## Basic usage
 
 1. Include the header in your source file: `#include "thpool.h"`
