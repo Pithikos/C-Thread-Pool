@@ -42,7 +42,7 @@ static volatile int threads_on_hold;
 /* ========================== STRUCTURES ============================ */
 
 
-/* Binary semaphore */
+/* semaphore */
 typedef struct sem {
 	pthread_mutex_t mutex;
 	pthread_cond_t   cond;
@@ -165,6 +165,7 @@ struct thpool_* thpool_init(int num_threads){
 			printf("THPOOL_DEBUG: Created thread %d in pool \n", n);
 #endif
 	}
+
 	/* Wait for threads to initialize */
 	pthread_mutex_lock(&thpool_p->thcount_lock);
 	while (thpool_p->num_threads_alive != num_threads) {
@@ -486,7 +487,6 @@ static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 		default: /* if >1 jobs in queue */
 					jobqueue_p->front = job_p->prev;
 					jobqueue_p->len--;
-					/* more than one job in queue -> post it */
 	}
 
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
@@ -507,10 +507,10 @@ static void jobqueue_destroy(jobqueue* jobqueue_p){
 /* ======================== SYNCHRONISATION ========================= */
 
 
-/* Init semaphore to 1 or 0 */
+/* Init semaphore to 0 */
 static void sem_init(sem *sem_p, int value) {
-	if (value < 0 || value > 1) {
-		err("sem_init(): Binary semaphore can take only values 1 or 0");
+	if (value < 0) {
+		err("sem_init(): Binary semaphore can take only values >= 0");
 		exit(1);
 	}
 	pthread_mutex_init(&(sem_p->mutex), NULL);
@@ -534,7 +534,7 @@ static void sem_post(sem *sem_p) {
 }
 
 
-/* Wait on semaphore until semaphore has value 0 */
+/* Wait on semaphore until semaphore has value greater than 0 */
 static void sem_wait(sem* sem_p) {
 	pthread_mutex_lock(&sem_p->mutex);
 	while (sem_p->v == 0) {
