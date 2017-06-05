@@ -510,7 +510,7 @@ static void jobqueue_destroy(jobqueue* jobqueue_p){
 /* Init semaphore to 0 */
 static void sem_init(sem *sem_p, int value) {
 	if (value < 0) {
-		err("sem_init(): Binary semaphore can take only values >= 0");
+		err("sem_init(): semaphore can take only values >= 0");
 		exit(1);
 	}
 	pthread_mutex_init(&(sem_p->mutex), NULL);
