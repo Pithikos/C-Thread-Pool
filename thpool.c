@@ -422,9 +422,10 @@ static int jobqueue_init(jobqueue* jobqueue_p){
 
 /* Clear the queue */
 static void jobqueue_clear(jobqueue* jobqueue_p){
-
-	while(jobqueue_p->len){
-		free(jobqueue_pull(jobqueue_p));
+    while (jobqueue_p->front) {
+		job* job_p = jobqueue_p->front->prev;
+		free(jobqueue_p->front);
+		jobqueue_p->front = job_p;
 	}
 
 	jobqueue_p->front = NULL;
@@ -435,8 +436,7 @@ static void jobqueue_clear(jobqueue* jobqueue_p){
 }
 
 
-/* Add (allocated) job to queue
- */
+/* Add (allocated) job to queue  */
 static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 
 	pthread_mutex_lock(&jobqueue_p->rwmutex);
