@@ -42,17 +42,10 @@ static volatile int threads_on_hold;
 /* ========================== STRUCTURES ============================ */
 
 
-/* semaphore */
-typedef struct sem {
-	pthread_mutex_t mutex;
-	pthread_cond_t   cond;
-	int v;
-} sem;
-
 
 /* Job */
 typedef struct job{
-	struct job*  prev;                   /* pointer to previous job   */
+	struct job*  next;                   /* pointer to next job   */
 	void   (*function)(void* arg);       /* function pointer          */
 	void*  arg;                          /* function's argument       */
 } job;
@@ -63,8 +56,8 @@ typedef struct jobqueue{
 	pthread_mutex_t rwmutex;             /* used for queue r/w access */
 	job  *front;                         /* pointer to front of queue */
 	job  *rear;                          /* pointer to rear  of queue */
-	sem *jobs;                      /* semaphore number of jobs in job queue  */
-	int   len;                           /* number of jobs in queue   */
+	int   num_jobs;                           /* number of jobs in queue   */
+	pthread_cond_t cond;
 } jobqueue;
 
 
@@ -98,18 +91,11 @@ static void  thpool_signal_idle_threads(thpool_* thpool_p);
 static int  thread_init(thpool_* thpool_p, struct thread** thread_p, int id);
 static void* thread_do(struct thread* thread_p);
 static void  thread_hold(int sig_id);
-static void  thread_destroy(struct thread* thread_p);
 
 static int   jobqueue_init(jobqueue* jobqueue_p);
-static void  jobqueue_clear(jobqueue* jobqueue_p);
 static void  jobqueue_push(jobqueue* jobqueue_p, struct job* newjob_p);
 static struct job* jobqueue_pull(jobqueue* jobqueue_p);
 static void  jobqueue_destroy(jobqueue* jobqueue_p);
-
-static void  sem_init(struct sem *sem_p, int value);
-static void  sem_reset(struct sem *sem_p);
-static void  sem_post(struct sem *sem_p);
-static void  sem_wait(struct sem *sem_p);
 
 
 
@@ -200,7 +186,7 @@ int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 /* Wait until all jobs have finished */
 void thpool_wait(thpool_* thpool_p){
 	pthread_mutex_lock(&thpool_p->thcount_lock);
-	while (thpool_p->jobqueue.len || thpool_p->num_threads_working) {
+	while (thpool_p->jobqueue.num_jobs || thpool_p->num_threads_working) {
 		pthread_cond_wait(&thpool_p->threads_all_idle, &thpool_p->thcount_lock);
 	}
 	pthread_mutex_unlock(&thpool_p->thcount_lock);
@@ -211,8 +197,6 @@ void thpool_wait(thpool_* thpool_p){
 void thpool_destroy(thpool_* thpool_p){
 	/* No need to destory if it's NULL */
 	if (thpool_p == NULL) return ;
-
-	volatile int threads_total = thpool_p->num_threads_alive;
 
 	/* End each thread 's infinite loop */
 	threads_keepalive = 0;
@@ -231,8 +215,8 @@ void thpool_destroy(thpool_* thpool_p){
 	jobqueue_destroy(&thpool_p->jobqueue);
 	/* Deallocs */
 	int n;
-	for (n=0; n < threads_total; n++){
-		thread_destroy(thpool_p->threads[n]);
+	for (n=0; n < thpool_p->num_threads; n++){
+		free(thpool_p->threads[n]);
 	}
 	free(thpool_p->threads);
 	free(thpool_p);
@@ -253,7 +237,6 @@ void thpool_resume(thpool_* thpool_p) {
     // resuming a single threadpool hasn't been
     // implemented yet, meanwhile this supresses
     // the warnings
-    (void)thpool_p;
 
 	threads_on_hold = 0;
 }
@@ -264,11 +247,12 @@ int thpool_num_threads_working(thpool_* thpool_p){
 }
 
 static void thpool_signal_idle_threads(thpool_* thpool_p) {
-    sem *sem_p = thpool_p->jobqueue.jobs;
-    pthread_mutex_lock(&sem_p->mutex);
-    sem_p->v = thpool_p->num_threads_alive;
-    pthread_cond_broadcast(&sem_p->cond);
-    pthread_mutex_unlock(&sem_p->mutex);
+	jobqueue* jobqueue_p = &thpool_p->jobqueue;
+
+    pthread_mutex_lock(&jobqueue_p->rwmutex);
+    jobqueue_p->num_jobs = -1;
+    pthread_cond_broadcast(&jobqueue_p->cond);
+    pthread_mutex_unlock(&jobqueue_p->rwmutex);
 }
 
 
@@ -353,23 +337,22 @@ static void* thread_do(struct thread* thread_p){
 	pthread_mutex_unlock(&thpool_p->thcount_lock);
 
 	while(threads_keepalive){
-		sem_wait(thpool_p->jobqueue.jobs);
-
-		if (threads_keepalive){
+	    /* Read job from queue */	
+		struct job* job_p = jobqueue_pull(&thpool_p->jobqueue);
+		if (job_p){
             
 			pthread_mutex_lock(&thpool_p->thcount_lock);
 			thpool_p->num_threads_working++;
 			pthread_mutex_unlock(&thpool_p->thcount_lock);
 
-			/* Read job from queue and execute it */
-			void (*func_buff)(void*);
-			void*  arg_buff;
-			job* job_p = jobqueue_pull(&thpool_p->jobqueue);
 			if (job_p) {
+				void (*func_buff)(void*);
+				void*  arg_buff;
 				func_buff = job_p->function;
 				arg_buff  = job_p->arg;
-				func_buff(arg_buff);
 				free(job_p);
+				/* do the job */
+				func_buff(arg_buff);
 			}
 
 			pthread_mutex_lock(&thpool_p->thcount_lock);
@@ -392,11 +375,6 @@ static void* thread_do(struct thread* thread_p){
 }
 
 
-/* Frees a thread  */
-static void thread_destroy (thread* thread_p){
-	free(thread_p);
-}
-
 
 
 /* ============================ JOB QUEUE =========================== */
@@ -404,45 +382,22 @@ static void thread_destroy (thread* thread_p){
 
 /* Initialize queue */
 static int jobqueue_init(jobqueue* jobqueue_p){
-	jobqueue_p->len = 0;
+	jobqueue_p->num_jobs = 0;
 	jobqueue_p->front = NULL;
 	jobqueue_p->rear  = NULL;
-
-	jobqueue_p->jobs = (struct sem*)malloc(sizeof(struct sem));
-	if (jobqueue_p->jobs == NULL){
-		return -1;
-	}
 
 	pthread_mutex_init(&(jobqueue_p->rwmutex), NULL);
-	sem_init(jobqueue_p->jobs, 0);
-
+    pthread_cond_init(&jobqueue_p->cond, NULL);
 	return 0;
 }
-
-
-/* Clear the queue */
-static void jobqueue_clear(jobqueue* jobqueue_p){
-    while (jobqueue_p->front) {
-		job* job_p = jobqueue_p->front->prev;
-		free(jobqueue_p->front);
-		jobqueue_p->front = job_p;
-	}
-
-	jobqueue_p->front = NULL;
-	jobqueue_p->rear  = NULL;
-	sem_reset(jobqueue_p->jobs);
-	jobqueue_p->len = 0;
-
-}
-
 
 /* Add (allocated) job to queue  */
 static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 
 	pthread_mutex_lock(&jobqueue_p->rwmutex);
-	newjob->prev = NULL;
+	newjob->next = NULL;
 
-	switch(jobqueue_p->len){
+	switch(jobqueue_p->num_jobs){
 
 		case 0:  /* if no jobs in queue */
 					jobqueue_p->front = newjob;
@@ -450,13 +405,13 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 					break;
 
 		default: /* if jobs in queue */
-					jobqueue_p->rear->prev = newjob;
+					jobqueue_p->rear->next = newjob;
 					jobqueue_p->rear = newjob;
 
 	}
-	jobqueue_p->len++;
+	jobqueue_p->num_jobs++;
 
-	sem_post(jobqueue_p->jobs);
+	pthread_cond_signal(&jobqueue_p->cond);
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 }
 
@@ -471,9 +426,15 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 
 	pthread_mutex_lock(&jobqueue_p->rwmutex);
+	while (jobqueue_p->num_jobs == 0) {
+		pthread_cond_wait(&jobqueue_p->cond, &jobqueue_p->rwmutex);
+	}	
 	job* job_p = jobqueue_p->front;
 
-	switch(jobqueue_p->len){
+	switch(jobqueue_p->num_jobs){
+
+		case -1:	
+					job_p = NULL;
 
 		case 0:  /* if no jobs in queue */
 		  			break;
@@ -481,12 +442,12 @@ static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 		case 1:  /* if one job in queue */
 					jobqueue_p->front = NULL;
 					jobqueue_p->rear  = NULL;
-					jobqueue_p->len = 0;
+					jobqueue_p->num_jobs = 0;
 					break;
 
 		default: /* if >1 jobs in queue */
-					jobqueue_p->front = job_p->prev;
-					jobqueue_p->len--;
+					jobqueue_p->front = job_p->next;
+					jobqueue_p->num_jobs--;
 	}
 
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
@@ -496,51 +457,15 @@ static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 
 /* Free all queue resources back to the system */
 static void jobqueue_destroy(jobqueue* jobqueue_p){
-	jobqueue_clear(jobqueue_p);
-	free(jobqueue_p->jobs);
-}
-
-
-
-
-
-/* ======================== SYNCHRONISATION ========================= */
-
-
-/* Init semaphore to 0 */
-static void sem_init(sem *sem_p, int value) {
-	if (value < 0) {
-		err("sem_init(): semaphore can take only values >= 0");
-		exit(1);
+    while (jobqueue_p->front) {
+		job* job_p = jobqueue_p->front->next;
+		free(jobqueue_p->front);
+		jobqueue_p->front = job_p;
 	}
-	pthread_mutex_init(&(sem_p->mutex), NULL);
-	pthread_cond_init(&(sem_p->cond), NULL);
-	sem_p->v = value;
 }
 
 
-/* Reset semaphore to 0 */
-static void sem_reset(sem *sem_p) {
-	sem_init(sem_p, 0);
-}
 
 
-/* Post to at least one thread */
-static void sem_post(sem *sem_p) {
-	pthread_mutex_lock(&sem_p->mutex);
-	sem_p->v += 1;
-	pthread_cond_signal(&sem_p->cond);
-	pthread_mutex_unlock(&sem_p->mutex);
-}
 
-
-/* Wait on semaphore until semaphore has value greater than 0 */
-static void sem_wait(sem* sem_p) {
-	pthread_mutex_lock(&sem_p->mutex);
-	while (sem_p->v == 0) {
-		pthread_cond_wait(&sem_p->cond, &sem_p->mutex);
-	}
-	sem_p->v -= 1;
-	pthread_mutex_unlock(&sem_p->mutex);
-}
 
