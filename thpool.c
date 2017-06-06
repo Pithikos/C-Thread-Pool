@@ -339,21 +339,19 @@ static void* thread_do(struct thread* thread_p){
 	while(threads_keepalive){
 	    /* Read job from queue */	
 		struct job* job_p = jobqueue_pull(&thpool_p->jobqueue);
-		if (job_p){
+		if (job_p && threads_keepalive){
             
 			pthread_mutex_lock(&thpool_p->thcount_lock);
 			thpool_p->num_threads_working++;
 			pthread_mutex_unlock(&thpool_p->thcount_lock);
 
-			if (job_p) {
-				void (*func_buff)(void*);
-				void*  arg_buff;
-				func_buff = job_p->function;
-				arg_buff  = job_p->arg;
-				free(job_p);
-				/* do the job */
-				func_buff(arg_buff);
-			}
+			void (*func_buff)(void*);
+			void*  arg_buff;
+			func_buff = job_p->function;
+			arg_buff  = job_p->arg;
+			free(job_p);
+			/* do the job */
+			func_buff(arg_buff);
 
 			pthread_mutex_lock(&thpool_p->thcount_lock);
 			thpool_p->num_threads_working--;
