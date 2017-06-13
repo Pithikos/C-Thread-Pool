@@ -57,6 +57,7 @@ typedef struct jobqueue{
 	job  *front;                         /* pointer to front of queue */
 	job  *rear;                          /* pointer to rear  of queue */
 	int   num_jobs;                           /* number of jobs in queue   */
+	int block;                           /* determine whether jobqueue will block on pop request */
 	pthread_cond_t cond;
 } jobqueue;
 
@@ -86,7 +87,6 @@ typedef struct thpool_{
 
 
 /* ========================== PROTOTYPES ============================ */
-static void  thpool_signal_idle_threads(thpool_* thpool_p);
 
 static int  thread_init(thpool_* thpool_p, struct thread** thread_p, int id);
 static void* thread_do(struct thread* thread_p);
@@ -94,7 +94,8 @@ static void  thread_hold(int sig_id);
 
 static int   jobqueue_init(jobqueue* jobqueue_p);
 static void  jobqueue_push(jobqueue* jobqueue_p, struct job* newjob_p);
-static struct job* jobqueue_pull(jobqueue* jobqueue_p);
+static struct job* jobqueue_pop(jobqueue* jobqueue_p);
+static void  jobqueue_unblock_pop_requests(jobqueue* jobqueue_p);
 static void  jobqueue_destroy(jobqueue* jobqueue_p);
 
 
@@ -201,8 +202,7 @@ void thpool_destroy(thpool_* thpool_p){
 	/* End each thread 's infinite loop */
 	threads_keepalive = 0;
 
-    /* unblock idle threads */    
-	thpool_signal_idle_threads(thpool_p);
+	jobqueue_unblock_pop_requests(&thpool_p->jobqueue);
 	
     /* wait for all threds to die */
     pthread_mutex_lock(&thpool_p->thcount_lock);
@@ -244,15 +244,6 @@ void thpool_resume(thpool_* thpool_p) {
 
 int thpool_num_threads_working(thpool_* thpool_p){
 	return thpool_p->num_threads_working;
-}
-
-static void thpool_signal_idle_threads(thpool_* thpool_p) {
-	jobqueue* jobqueue_p = &thpool_p->jobqueue;
-
-    pthread_mutex_lock(&jobqueue_p->rwmutex);
-    jobqueue_p->num_jobs = -1;
-    pthread_cond_broadcast(&jobqueue_p->cond);
-    pthread_mutex_unlock(&jobqueue_p->rwmutex);
 }
 
 
@@ -338,7 +329,7 @@ static void* thread_do(struct thread* thread_p){
 
 	while(threads_keepalive){
 	    /* Read job from queue */	
-		struct job* job_p = jobqueue_pull(&thpool_p->jobqueue);
+		struct job* job_p = jobqueue_pop(&thpool_p->jobqueue);
 		if (job_p && threads_keepalive){
             
 			pthread_mutex_lock(&thpool_p->thcount_lock);
@@ -381,6 +372,7 @@ static void* thread_do(struct thread* thread_p){
 /* Initialize queue */
 static int jobqueue_init(jobqueue* jobqueue_p){
 	jobqueue_p->num_jobs = 0;
+	jobqueue_p->block = 1;
 	jobqueue_p->front = NULL;
 	jobqueue_p->rear  = NULL;
 
@@ -421,18 +413,15 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 =======
 >>>>>>> da2c0fe45e43ce0937f272c8cd2704bdc0afb490
  */
-static struct job* jobqueue_pull(jobqueue* jobqueue_p){
+static struct job* jobqueue_pop(jobqueue* jobqueue_p){
 
 	pthread_mutex_lock(&jobqueue_p->rwmutex);
-	while (jobqueue_p->num_jobs == 0) {
+	while (jobqueue_p->block && jobqueue_p->num_jobs == 0) {
 		pthread_cond_wait(&jobqueue_p->cond, &jobqueue_p->rwmutex);
 	}	
 	job* job_p = jobqueue_p->front;
 
 	switch(jobqueue_p->num_jobs){
-
-		case -1:	
-					job_p = NULL;
 
 		case 0:  /* if no jobs in queue */
 		  			break;
@@ -452,6 +441,12 @@ static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 	return job_p;
 }
 
+static void jobqueue_unblock_pop_requests(jobqueue* jobqueue_p) {
+	pthread_mutex_lock(&jobqueue_p->rwmutex);
+	jobqueue_p->block = 0;
+	pthread_cond_broadcast(&jobqueue_p->cond);
+	pthread_mutex_unlock(&jobqueue_p->rwmutex);
+}
 
 /* Free all queue resources back to the system */
 static void jobqueue_destroy(jobqueue* jobqueue_p){
