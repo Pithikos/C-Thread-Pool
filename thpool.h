@@ -180,6 +180,51 @@ void thpool_destroy(threadpool);
 int thpool_num_threads_working(threadpool);
 
 
+/**
+ * @brief Show the total number of jobs placed, including finished and ongoing
+ *
+ * This is an always-increment counter, and it shows the total number of jobs
+ * that has been placed to a threadpool in its lifetime.
+ *
+ * @example
+ * int main() {
+ *    threadpool thpool = thpool_init(2);
+ * 
+ *    // Add bunch of work
+ *    ..
+ *    printf("Placed jobs: %d\n", thpool_num_jobs_placed(thpool));
+ *    ..
+ *    return 0;
+ * }
+ *
+ * @param threadpool     the threadpool of interest
+ * @return long          number of jobs placed to this pool from its inception
+ */
+long thpool_num_jobs_placed(threadpool);
+
+
+/**
+ * @brief Show currently finished jobs
+ *
+ * This is an always-increment counter which shows the total number of jobs
+ * that this threadpool has finished in its lifetime.
+ *
+ * @example
+ * int main() {
+ *    threadpool thpool = thpool_init(2);
+ *    
+ *    // Add bunch of work
+ *    ..
+ *    printf("Finished jobs: %ld\n", thpool_num_jobs_done(thpool));
+ *    ..
+ *    return 0;
+ * }
+ *
+ * @param threadpool     the threadpool of interest
+ * @return integer       number of jobs done by the threadpool in its lifetime
+ */
+long thpool_num_jobs_done(threadpool);
+
 #ifdef __cplusplus
 }
 #endif

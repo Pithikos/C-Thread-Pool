@@ -84,6 +84,8 @@ typedef struct thpool_{
 	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
 	pthread_cond_t  threads_all_idle;    /* signal to thpool_wait     */
 	jobqueue  jobqueue;                  /* job queue                 */
+	long num_jobs_placed;		     /* jobs already placed       */
+	long num_jobs_done;                  /* jobs already done         */
 } thpool_;
 
 
@@ -136,6 +138,8 @@ struct thpool_* thpool_init(int num_threads){
 	}
 	thpool_p->num_threads_alive   = 0;
 	thpool_p->num_threads_working = 0;
+	thpool_p->num_jobs_placed = 0;
+	thpool_p->num_jobs_done = 0;
 
 	/* Initialise the job queue */
 	if (jobqueue_init(&thpool_p->jobqueue) == -1){
@@ -188,6 +192,9 @@ int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 
 	/* add job to queue */
 	jobqueue_push(&thpool_p->jobqueue, newjob);
+
+	/* increment the job placed count */
+	thpool_p->num_jobs_placed++;
 
 	return 0;
 }
@@ -266,8 +273,13 @@ int thpool_num_threads_working(thpool_* thpool_p){
 	return thpool_p->num_threads_working;
 }
 
+long thpool_num_jobs_placed(thpool_* thpool_p){
+	return thpool_p->num_jobs_placed;
+}
 
-
+long thpool_num_jobs_done(thpool_* thpool_p){
+	return thpool_p->num_jobs_done;
+}
 
 
 /* ============================ THREAD ============================== */
@@ -365,6 +377,8 @@ static void* thread_do(struct thread* thread_p){
 				arg_buff  = job_p->arg;
 				func_buff(arg_buff);
 				free(job_p);
+				/* increment the job done count */
+				thpool_p->num_jobs_done++;
 			}
 
 			pthread_mutex_lock(&thpool_p->thcount_lock);
