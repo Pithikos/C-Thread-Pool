@@ -132,7 +132,8 @@ threadpool thpool_init(int num_threads){
 	thpool_p = (struct thpool_*)malloc(sizeof(struct thpool_));
 	if (thpool_p == NULL){
 		err("thpool_init(): Could not allocate memory for thread pool\n");
-		return NULL;
+		threadpool null = { .dat = NULL };
+		return null;
 	}
 	thpool_p->num_threads_alive   = 0;
 	thpool_p->num_threads_working = 0;
@@ -141,7 +142,8 @@ threadpool thpool_init(int num_threads){
 	if (jobqueue_init(&thpool_p->jobqueue) == -1){
 		err("thpool_init(): Could not allocate memory for job queue\n");
 		free(thpool_p);
-		return NULL;
+		threadpool null = { .dat = NULL };
+		return null;
 	}
 
 	/* Make threads in pool */
@@ -150,7 +152,8 @@ threadpool thpool_init(int num_threads){
 		err("thpool_init(): Could not allocate memory for threads\n");
 		jobqueue_destroy(&thpool_p->jobqueue);
 		free(thpool_p);
-		return NULL;
+		threadpool null = { .dat = NULL };
+		return null;
 	}
 
 	pthread_mutex_init(&(thpool_p->thcount_lock), NULL);
@@ -274,6 +277,19 @@ int thpool_num_threads_working(threadpool tp){
 	return thpool_p->num_threads_working;
 }
 
+int thpool_thread_index(threadpool tp, pthread_t pthread) {
+	thpool_*  thpool_p = (thpool_*)tp.dat;
+	int       idx = 0;
+	int       n;
+	const int num_threads = thpool_p->num_threads_alive;
+
+	for (n=0; n<num_threads; n++){
+		if (pthread_equal(pthread, thpool_p->threads[n]->pthread))
+			return n;
+	}
+	return -1;
+}
+
 
 
 
@@ -286,7 +302,7 @@ int thpool_num_threads_working(threadpool tp){
  * @param id            id to be given to the thread
  * @return 0 on success, -1 otherwise.
  */
-static int thread_init (thpool_* thpool, struct thread** thread_p, int id){
+static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 
 	*thread_p = (struct thread*)malloc(sizeof(struct thread));
 	if (thread_p == NULL){

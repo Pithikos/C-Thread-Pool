@@ -32,9 +32,26 @@ typedef struct { void* dat; } threadpool;
  *
  * @param  num_threads   number of threads to be created in the threadpool
  * @return threadpool    created threadpool on success,
- *                       NULL on error
+ *                       "null" threadpool on error (see thpool_null())
  */
 threadpool thpool_init(int num_threads);
+
+
+
+/** @file */
+/**
+ * @brief  test whether thpool_init() returned successfully
+ *
+ * @example
+ *
+ *   thpool = thpool_init(4);
+ *   if (thpool_null(thpool)) {
+ *      fprintf(stderr, "thpool_init() failed!\n");
+ *      ..
+ *   }
+ */
+
+#define thpool_null(THREADPOOL) ((THREADPOOL).dat == NULL)
 
 
 /**
@@ -178,6 +195,20 @@ void thpool_destroy(threadpool tp);
  * @return integer       number of threads working
  */
 int thpool_num_threads_working(threadpool tp);
+
+
+/**
+ * @brief return the index for a given thread-ID
+ *
+ * We don't want to expose thread-IDs of our threads, but the threads
+ * themselves can come to us to ask for their index, which might be useful
+ * for maintaining application-specific data.
+ *
+ * @param tp             the threadpool to destroy
+ * @param pthread        pthread-ID -- e.g. via pthread_self()
+ * @return integer       index of the provided thread  (or -1)
+ */
+int thpool_thread_index(threadpool tp, pthread_t pthread);
 
 
 #ifdef __cplusplus
