@@ -191,7 +191,7 @@ void thpool_destroy(threadpool tp);
  *    return 0;
  * }
  *
- * @param tp             the threadpool to destroy
+ * @param tp             the threadpool
  * @return integer       number of threads working
  */
 int thpool_num_threads_working(threadpool tp);
@@ -200,11 +200,11 @@ int thpool_num_threads_working(threadpool tp);
 /**
  * @brief return the index for a given thread-ID
  *
- * We don't want to expose thread-IDs of our threads, but the threads
- * themselves can come to us to ask for their index, which might be useful
- * for maintaining application-specific data.
+ * If we don't want to expose access to our threads, the threads themselves
+ * can still come to us to ask for their index, which might be useful for
+ * maintaining application-specific data.
  *
- * @param tp             the threadpool to destroy
+ * @param tp             the threadpool
  * @param pthread        pthread-ID -- e.g. via pthread_self()
  * @return integer       index of the provided thread  (or -1)
  */
