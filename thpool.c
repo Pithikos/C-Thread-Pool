@@ -19,6 +19,9 @@
 #if defined(__linux__)
 #include <sys/prctl.h>
 #endif
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#include <pthread_np.h>
+#endif
 
 #include "thpool.h"
 
@@ -325,6 +328,8 @@ static void* thread_do(struct thread* thread_p){
 	prctl(PR_SET_NAME, thread_name);
 #elif defined(__APPLE__) && defined(__MACH__)
 	pthread_setname_np(thread_name);
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+    pthread_set_name_np(thread_p->pthread, thread_name);
 #else
 	err("thread_do(): pthread_setname_np is not supported on this system");
 #endif
