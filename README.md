@@ -21,12 +21,12 @@ If this project reduced your development time feel free to buy me a coffee.
 The library is not precompiled so you have to compile it with your project. The thread pool
 uses POSIX threads so if you compile with gcc on Linux you have to use the flag `-pthread` like this:
 
-    gcc example.c thpool.c -D THPOOL_DEBUG -pthread -o example
+    make
 
 
 Then run the executable like this:
 
-    ./example
+    ./bin/example
 
 
 ## Basic usage
