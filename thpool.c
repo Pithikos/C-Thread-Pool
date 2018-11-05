@@ -34,6 +34,8 @@
 #define err(str)
 #endif
 
+static pthread_mutex_t thread_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t thread_cond = PTHREAD_COND_INITIALIZER;
 static volatile int threads_keepalive;
 static volatile int threads_on_hold;
 
@@ -119,9 +121,10 @@ static void  bsem_wait(struct bsem *bsem_p);
 
 /* Initialise thread pool */
 threadpool thpool_init(int num_threads){
-
+	pthread_mutex_lock(&thread_mutex);
 	threads_on_hold   = 0;
 	threads_keepalive = 1;
+	pthread_mutex_unlock(&thread_mutex);
 
 	if (num_threads < 0){
 		num_threads = 0;
@@ -254,6 +257,11 @@ void thpool_destroy(threadpool tp){
 void thpool_pause(threadpool tp) {
 	thpool_* thpool_p = (thpool_*)tp.dat;
 	int n;
+
+	pthread_mutex_lock(&thread_mutex);
+	threads_on_hold = 1;
+	pthread_mutex_unlock(&thread_mutex);
+
 	for (n=0; n < thpool_p->num_threads_alive; n++){
 		pthread_kill(thpool_p->threads[n]->pthread, SIGUSR1);
 	}
@@ -268,7 +276,10 @@ void thpool_resume(threadpool tp) {
     (void)tp.dat;
 
 	thpool_* thpool_p = (thpool_*)tp.dat;
+	pthread_mutex_lock(&thread_mutex);
 	threads_on_hold = 0;
+	pthread_cond_broadcast(&thread_cond);
+	pthread_mutex_unlock(&thread_mutex);
 }
 
 
@@ -321,11 +332,12 @@ static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 
 /* Sets the calling thread on hold */
 static void thread_hold(int sig_id) {
-    (void)sig_id;
-	threads_on_hold = 1;
+	(void)sig_id;
+	pthread_mutex_lock(&thread_mutex);
 	while (threads_on_hold){
-		sleep(1);
+		pthread_cond_wait(&thread_cond, &thread_mutex);
 	}
+	pthread_mutex_unlock(&thread_mutex);
 }
 
 
