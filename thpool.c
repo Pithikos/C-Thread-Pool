@@ -273,9 +273,8 @@ void thpool_resume(threadpool tp) {
     // resuming a single threadpool hasn't been
     // implemented yet, meanwhile this supresses
     // the warnings
-    (void)tp.dat;
+    (void)tp;
 
-	thpool_* thpool_p = (thpool_*)tp.dat;
 	pthread_mutex_lock(&thread_mutex);
 	threads_on_hold = 0;
 	pthread_cond_broadcast(&thread_cond);
@@ -290,7 +289,6 @@ int thpool_num_threads_working(threadpool tp){
 
 int thpool_thread_index(threadpool tp, pthread_t pthread) {
 	thpool_*  thpool_p = (thpool_*)tp.dat;
-	int       idx = 0;
 	int       n;
 	const int num_threads = thpool_p->num_threads_alive;
 
