@@ -282,7 +282,7 @@ int thpool_num_threads_working(thpool_* thpool_p){
 static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 
 	*thread_p = (struct thread*)malloc(sizeof(struct thread));
-	if (thread_p == NULL){
+	if (*thread_p == NULL){
 		err("thread_init(): Could not allocate memory for thread\n");
 		return -1;
 	}
