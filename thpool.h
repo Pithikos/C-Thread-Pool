@@ -20,7 +20,7 @@ typedef struct thpool_* threadpool;
 /**
  * @brief  Initialize threadpool
  *
- * Initializes a threadpool. This function will not return untill all
+ * Initializes a threadpool. This function will not return until all
  * threads have initialized successfully.
  *
  * @example
@@ -77,7 +77,7 @@ int thpool_add_work(threadpool, void (*function_p)(void*), void* arg_p);
  * Smart polling is used in wait. The polling is initially 0 - meaning that
  * there is virtually no polling at all. If after 1 seconds the threads
  * haven't finished, the polling interval starts growing exponentially
- * untill it reaches max_secs seconds. Then it jumps down to a maximum polling
+ * until it reaches max_secs seconds. Then it jumps down to a maximum polling
  * interval assuming that heavy processing is being used in the threadpool.
  *
  * @example
