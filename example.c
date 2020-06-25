@@ -38,6 +38,8 @@ int main(){
 		thpool_add_work(thpool, (void*)task2, NULL);
 	};
 
+	puts("Waiting till all the jobs have completed");
+	thpool_wait(thpool);
 	puts("Killing threadpool");
 	thpool_destroy(thpool);
 	
