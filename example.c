@@ -34,8 +34,8 @@ int main(){
 	puts("Adding 40 tasks to threadpool");
 	int i;
 	for (i=0; i<20; i++){
-		thpool_add_work(thpool, (void*)task1, NULL);
-		thpool_add_work(thpool, (void*)task2, NULL);
+		thpool_add_work(thpool, task1, NULL);
+		thpool_add_work(thpool, task2, NULL);
 	};
 
 	puts("Killing threadpool");
