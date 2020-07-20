@@ -1,4 +1,4 @@
-![Build status](http://178.62.170.124:3000/pithikos/c-thread-pool/badge/?branch=master)
+[![CircleCI](https://circleci.com/gh/Pithikos/C-Thread-Pool.svg?style=svg)](https://circleci.com/gh/Pithikos/C-Thread-Pool)
 
 # C Thread Pool
 
