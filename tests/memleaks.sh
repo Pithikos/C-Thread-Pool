@@ -62,7 +62,12 @@ test_thread_free 8
 test_thread_free 1
 test_thread_free 20
 test_thread_free_multi 4 20
-test_thread_free_multi 3 1000
-test_thread_free_multi 100 100
+
+# test_thread_free_multi 3 1000  # Takes way too long
+test_thread_free_multi 3 200
+
+# test_thread_free_multi 100 100  # Takes way too long
+test_thread_free_multi 100 20
+
 
 echo "No memory leaks"
