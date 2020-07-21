@@ -29,7 +29,7 @@ int main(){
 	puts("Adding 40 tasks to threadpool");
 	int i;
 	for (i=0; i<40; i++){
-		thpool_add_work(thpool, (void*)task, (void*)(uintptr_t)i);
+		thpool_add_work(thpool, task, (void*)(uintptr_t)i);
 	};
 
 	thpool_wait(thpool);
