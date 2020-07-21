@@ -13,16 +13,11 @@
 
 #include <stdio.h>
 #include <pthread.h>
+#include <stdint.h>
 #include "thpool.h"
 
-
-void task1(){
-	printf("Thread #%u working on task1\n", (int)pthread_self());
-}
-
-
-void task2(){
-	printf("Thread #%u working on task2\n", (int)pthread_self());
+void task(void *arg){
+	printf("Thread #%u working on %d\n", (int)pthread_self(), (int) arg);
 }
 
 
@@ -33,11 +28,11 @@ int main(){
 
 	puts("Adding 40 tasks to threadpool");
 	int i;
-	for (i=0; i<20; i++){
-		thpool_add_work(thpool, task1, NULL);
-		thpool_add_work(thpool, task2, NULL);
+	for (i=0; i<40; i++){
+		thpool_add_work(thpool, task, (void*)(uintptr_t)i);
 	};
 
+	thpool_wait(thpool);
 	puts("Killing threadpool");
 	thpool_destroy(thpool);
 	

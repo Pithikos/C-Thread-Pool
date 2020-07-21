@@ -1,0 +1,19 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: pithikos/test-c-thread-pool
+    steps:
+      - checkout
+      - run:
+          name: Test
+          command: |
+            cd tests/
+            ./normal_compile.sh
+            ./optimized_compile.sh
+
+workflows:
+  test:
+    jobs:
+      - test
