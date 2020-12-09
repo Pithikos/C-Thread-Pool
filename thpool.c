@@ -8,7 +8,7 @@
  *
  ********************************/
 
-#define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -34,6 +34,8 @@
 #define err(str)
 #endif
 
+static pthread_mutex_t thread_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t thread_cond = PTHREAD_COND_INITIALIZER;
 static volatile int threads_keepalive;
 static volatile int threads_on_hold;
 
@@ -93,7 +95,7 @@ typedef struct thpool_{
 /* ========================== PROTOTYPES ============================ */
 
 
-static int  thread_init(thpool_* thpool_p, struct thread** thread_p, int id);
+static int   thread_init(thpool_* thpool_p, struct thread** thread_p, int id);
 static void* thread_do(struct thread* thread_p);
 static void  thread_hold(int sig_id);
 static void  thread_destroy(struct thread* thread_p);
@@ -118,10 +120,11 @@ static void  bsem_wait(struct bsem *bsem_p);
 
 
 /* Initialise thread pool */
-struct thpool_* thpool_init(int num_threads){
-
+threadpool thpool_init(int num_threads){
+	pthread_mutex_lock(&thread_mutex);
 	threads_on_hold   = 0;
 	threads_keepalive = 1;
+	pthread_mutex_unlock(&thread_mutex);
 
 	if (num_threads < 0){
 		num_threads = 0;
@@ -132,7 +135,8 @@ struct thpool_* thpool_init(int num_threads){
 	thpool_p = (struct thpool_*)malloc(sizeof(struct thpool_));
 	if (thpool_p == NULL){
 		err("thpool_init(): Could not allocate memory for thread pool\n");
-		return NULL;
+		threadpool null = { .dat = NULL };
+		return null;
 	}
 	thpool_p->num_threads_alive   = 0;
 	thpool_p->num_threads_working = 0;
@@ -141,7 +145,8 @@ struct thpool_* thpool_init(int num_threads){
 	if (jobqueue_init(&thpool_p->jobqueue) == -1){
 		err("thpool_init(): Could not allocate memory for job queue\n");
 		free(thpool_p);
-		return NULL;
+		threadpool null = { .dat = NULL };
+		return null;
 	}
 
 	/* Make threads in pool */
@@ -150,7 +155,8 @@ struct thpool_* thpool_init(int num_threads){
 		err("thpool_init(): Could not allocate memory for threads\n");
 		jobqueue_destroy(&thpool_p->jobqueue);
 		free(thpool_p);
-		return NULL;
+		threadpool null = { .dat = NULL };
+		return null;
 	}
 
 	pthread_mutex_init(&(thpool_p->thcount_lock), NULL);
@@ -168,13 +174,15 @@ struct thpool_* thpool_init(int num_threads){
 	/* Wait for threads to initialize */
 	while (thpool_p->num_threads_alive != num_threads) {}
 
-	return thpool_p;
+	threadpool tp = { .dat = thpool_p };
+	return tp;
 }
 
 
 /* Add work to the thread pool */
-int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
-	job* newjob;
+int thpool_add_work(threadpool tp, void (*function_p)(void*), void* arg_p){
+	thpool_* thpool_p = (thpool_*)tp.dat;
+	job*     newjob;
 
 	newjob=(struct job*)malloc(sizeof(struct job));
 	if (newjob==NULL){
@@ -194,7 +202,8 @@ int thpool_add_work(thpool_* thpool_p, void (*function_p)(void*), void* arg_p){
 
 
 /* Wait until all jobs have finished */
-void thpool_wait(thpool_* thpool_p){
+void thpool_wait(threadpool tp){
+	thpool_* thpool_p = (thpool_*)tp.dat;
 	pthread_mutex_lock(&thpool_p->thcount_lock);
 	while (thpool_p->jobqueue.len || thpool_p->num_threads_working) {
 		pthread_cond_wait(&thpool_p->threads_all_idle, &thpool_p->thcount_lock);
@@ -204,7 +213,9 @@ void thpool_wait(thpool_* thpool_p){
 
 
 /* Destroy the threadpool */
-void thpool_destroy(thpool_* thpool_p){
+void thpool_destroy(threadpool tp){
+	thpool_* thpool_p = (thpool_*)tp.dat;
+
 	/* No need to destory if it's NULL */
 	if (thpool_p == NULL) return ;
 
@@ -243,8 +254,14 @@ void thpool_destroy(thpool_* thpool_p){
 
 
 /* Pause all threads in threadpool */
-void thpool_pause(thpool_* thpool_p) {
+void thpool_pause(threadpool tp) {
+	thpool_* thpool_p = (thpool_*)tp.dat;
 	int n;
+
+	pthread_mutex_lock(&thread_mutex);
+	threads_on_hold = 1;
+	pthread_mutex_unlock(&thread_mutex);
+
 	for (n=0; n < thpool_p->num_threads_alive; n++){
 		pthread_kill(thpool_p->threads[n]->pthread, SIGUSR1);
 	}
@@ -252,20 +269,35 @@ void thpool_pause(thpool_* thpool_p) {
 
 
 /* Resume all threads in threadpool */
-void thpool_resume(thpool_* thpool_p) {
+void thpool_resume(threadpool tp) {
     // resuming a single threadpool hasn't been
     // implemented yet, meanwhile this supresses
     // the warnings
-    (void)thpool_p;
+    (void)tp;
 
+	pthread_mutex_lock(&thread_mutex);
 	threads_on_hold = 0;
+	pthread_cond_broadcast(&thread_cond);
+	pthread_mutex_unlock(&thread_mutex);
 }
 
 
-int thpool_num_threads_working(thpool_* thpool_p){
+int thpool_num_threads_working(threadpool tp){
+	thpool_* thpool_p = (thpool_*)tp.dat;
 	return thpool_p->num_threads_working;
 }
 
+int thpool_thread_index(threadpool tp, pthread_t pthread) {
+	thpool_*  thpool_p = (thpool_*)tp.dat;
+	int       n;
+	const int num_threads = thpool_p->num_threads_alive;
+
+	for (n=0; n<num_threads; n++){
+		if (pthread_equal(pthread, thpool_p->threads[n]->pthread))
+			return n;
+	}
+	return -1;
+}
 
 
 
@@ -273,7 +305,7 @@ int thpool_num_threads_working(thpool_* thpool_p){
 /* ============================ THREAD ============================== */
 
 
-/* Initialize a thread in the thread pool
+/* Initialize a thread in the thread pool   [not exported]
  *
  * @param thread        address to the pointer of the thread to be created
  * @param id            id to be given to the thread
@@ -298,11 +330,12 @@ static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 
 /* Sets the calling thread on hold */
 static void thread_hold(int sig_id) {
-    (void)sig_id;
-	threads_on_hold = 1;
+	(void)sig_id;
+	pthread_mutex_lock(&thread_mutex);
 	while (threads_on_hold){
-		sleep(1);
+		pthread_cond_wait(&thread_cond, &thread_mutex);
 	}
+	pthread_mutex_unlock(&thread_mutex);
 }
 
 

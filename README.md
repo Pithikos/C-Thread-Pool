@@ -18,8 +18,19 @@ If this project reduced your development time feel free to buy me a coffee.
 
 ## Run an example
 
-The library is not precompiled so you have to compile it with your project. The thread pool
-uses POSIX threads so if you compile with gcc on Linux you have to use the flag `-pthread` like this:
+The library can be compiled into a static/shared library file with CMake:
+
+```
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH ..
+make
+make install
+```
+
+allowing for it to be linked against your code.
+
+Otherwise, compile it with your project:
 
     gcc example.c thpool.c -D THPOOL_DEBUG -pthread -o example
 
@@ -31,7 +42,7 @@ Then run the executable like this:
 
 ## Basic usage
 
-1. Include the header in your source file: `#include "thpool.h"`
+1. Include the header in your source file: `#include "C-Thread-Pool/thpool.h"`
 2. Create a thread pool with number of threads you want: `threadpool thpool = thpool_init(4);`
 3. Add work to the pool: `thpool_add_work(thpool, (void*)function_p, (void*)arg_p);`
 

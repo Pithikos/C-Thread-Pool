@@ -14,7 +14,7 @@ extern "C" {
 /* =================================== API ======================================= */
 
 
-typedef struct thpool_* threadpool;
+typedef struct { void* dat; } threadpool;
 
 
 /**
@@ -32,9 +32,26 @@ typedef struct thpool_* threadpool;
  *
  * @param  num_threads   number of threads to be created in the threadpool
  * @return threadpool    created threadpool on success,
- *                       NULL on error
+ *                       "null" threadpool on error (see thpool_null())
  */
 threadpool thpool_init(int num_threads);
+
+
+
+/** @file */
+/**
+ * @brief  test whether thpool_init() returned successfully
+ *
+ * @example
+ *
+ *   thpool = thpool_init(4);
+ *   if (thpool_null(thpool)) {
+ *      fprintf(stderr, "thpool_init() failed!\n");
+ *      ..
+ *   }
+ */
+
+#define thpool_null(THREADPOOL) ((THREADPOOL).dat == NULL)
 
 
 /**
@@ -59,12 +76,12 @@ threadpool thpool_init(int num_threads);
  *       ..
  *    }
  *
- * @param  threadpool    threadpool to which the work will be added
+ * @param  tp            threadpool to which the work will be added
  * @param  function_p    pointer to function to add as work
  * @param  arg_p         pointer to an argument
  * @return 0 on success, -1 otherwise.
  */
-int thpool_add_work(threadpool, void (*function_p)(void*), void* arg_p);
+int thpool_add_work(threadpool tp, void (*function_p)(void*), void* arg_p);
 
 
 /**
@@ -91,10 +108,10 @@ int thpool_add_work(threadpool, void (*function_p)(void*), void* arg_p);
  *    puts("All added work has finished");
  *    ..
  *
- * @param threadpool     the threadpool to wait for
+ * @param tp             the threadpool to wait for
  * @return nothing
  */
-void thpool_wait(threadpool);
+void thpool_wait(threadpool tp);
 
 
 /**
@@ -115,10 +132,10 @@ void thpool_wait(threadpool);
  *    ..
  *    thpool_resume(thpool); // Let the threads start their magic
  *
- * @param threadpool    the threadpool where the threads should be paused
+ * @param tp            the threadpool where the threads should be paused
  * @return nothing
  */
-void thpool_pause(threadpool);
+void thpool_pause(threadpool tp);
 
 
 /**
@@ -131,10 +148,10 @@ void thpool_pause(threadpool);
  *    thpool_resume(thpool);
  *    ..
  *
- * @param threadpool     the threadpool where the threads should be unpaused
+ * @param tp             the threadpool where the threads should be unpaused
  * @return nothing
  */
-void thpool_resume(threadpool);
+void thpool_resume(threadpool tp);
 
 
 /**
@@ -153,10 +170,10 @@ void thpool_resume(threadpool);
  *    return 0;
  * }
  *
- * @param threadpool     the threadpool to destroy
+ * @param tp             the threadpool to destroy
  * @return nothing
  */
-void thpool_destroy(threadpool);
+void thpool_destroy(threadpool tp);
 
 
 /**
@@ -174,10 +191,24 @@ void thpool_destroy(threadpool);
  *    return 0;
  * }
  *
- * @param threadpool     the threadpool of interest
+ * @param tp             the threadpool
  * @return integer       number of threads working
  */
-int thpool_num_threads_working(threadpool);
+int thpool_num_threads_working(threadpool tp);
+
+
+/**
+ * @brief return the index for a given thread-ID
+ *
+ * If we don't want to expose access to our threads, the threads themselves
+ * can still come to us to ask for their index, which might be useful for
+ * maintaining application-specific data.
+ *
+ * @param tp             the threadpool
+ * @param pthread        pthread-ID -- e.g. via pthread_self()
+ * @return integer       index of the provided thread  (or -1)
+ */
+int thpool_thread_index(threadpool tp, pthread_t pthread);
 
 
 #ifdef __cplusplus
