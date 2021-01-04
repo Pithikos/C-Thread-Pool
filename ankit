@@ -1,0 +1,27 @@
+public class YogaServiceImpl implements YogaService {
+
+	
+		@Autowired
+		private YogaRepository yogaRepository;
+
+		@Transactional
+		public Yoga save(Yoga yoga) {
+		return yogaRepository.save(yoga);
+		}
+
+		public List<Yoga> findAllYogas() {
+			return yogaRepository.loadAll();
+		}
+
+		public List<YogaReport> findAllYogaReports() {
+			return yogaRepository.findAllYogaReports();
+		}
+
+		@Override
+		public List<YogaReport> findAllGoalReports() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		
+	}
