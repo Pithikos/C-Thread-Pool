@@ -536,7 +536,7 @@ static void bsem_post_all(bsem *bsem_p) {
 }
 
 
-/* Wait on semaphore until semaphore has value 0 */
+/* Wait on semaphore until semaphore has value 1 */
 static void bsem_wait(bsem* bsem_p) {
 	pthread_mutex_lock(&bsem_p->mutex);
 	while (bsem_p->v != 1) {
