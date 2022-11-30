@@ -8,6 +8,7 @@ jobs:
       - checkout
       - run:
           name: Test
+          no_output_timeout: 3h
           command: |
             cd tests/
             ./normal_compile.sh
