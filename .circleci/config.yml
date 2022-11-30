@@ -1,20 +1,31 @@
 version: 2.1
 
 jobs:
-  test:
+  test-normal-compile:
     docker:
       - image: pithikos/test-c-thread-pool
     steps:
       - checkout
       - run:
           name: Test
-          no_output_timeout: 3h
+          no_output_timeout: 2h
           command: |
             cd tests/
             ./normal_compile.sh
+  test-optimized-compile:
+    docker:
+      - image: pithikos/test-c-thread-pool
+    steps:
+      - checkout
+      - run:
+          name: Test
+          no_output_timeout: 2h
+          command: |
+            cd tests/
             ./optimized_compile.sh
 
 workflows:
   test:
     jobs:
-      - test
+      - test-normal-compile
+      - test-optimized-compile
