@@ -17,7 +17,7 @@ int main(int argc, char *argv[]){
 	threadpool thpool = thpool_init(num_threads);
 	thpool_destroy(thpool);
 
-	sleep(0.5); // Sometimes main exits before thpool_destroy finished 100%
+	sleep(0.8); // Sometimes main exits before thpool_destroy finished 100%
 
 	return 0;
 }
