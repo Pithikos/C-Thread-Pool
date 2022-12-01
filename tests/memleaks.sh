@@ -46,10 +46,11 @@ function _test_thread_free_multi { #threads
 
 
 # This is the same with test_many_thread_allocs but multiplied
-function test_thread_free_multi { #threads #times
+function test_thread_free_multi { #threads #times #nparallel
 	echo "Testing multiple threads creation and destruction in pool(threads=$1 times=$2)"
 	compile src/no_work.c
 	pids=()
+	nparallel="${3:-10}"
 
 	# Run tests in p
 	for (( i = 1; i <= "$2"; i++ )); do
@@ -89,7 +90,7 @@ test_thread_free_multi 4 20
 test_thread_free_multi 3 200
 
 # test_thread_free_multi 100 100  # Takes way too long
-test_thread_free_multi 100 20
+test_thread_free_multi 100 20 1
 
 
 echo "No memory leaks"
