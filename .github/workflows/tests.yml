@@ -1,0 +1,19 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-normal-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run tests with standard compilation flags
+        working-directory: tests/
+        run: ./normal_compile.sh
+  test-optimized-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run tests with optimized compilation flags
+        working-directory: tests/
+        run: ./optimized_compile.sh

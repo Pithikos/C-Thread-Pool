@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/Pithikos/C-Thread-Pool.svg?style=svg)](https://circleci.com/gh/Pithikos/C-Thread-Pool)
+[[![GitHub Actions](https://github.com/Pithikos/C-Thread-Pool/workflows/tests/badge.svg?branch=master)](https://github.com/api-platform/core/actions?query=workflow%3Atests+branch%3Amaster)
 
 # C Thread Pool
 
