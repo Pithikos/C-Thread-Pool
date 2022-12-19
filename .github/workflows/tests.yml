@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Valgrind
-        run: sudo apt install valgrind
+        run: sudo apt-get install -y valgrind
       - name: Run tests with standard compilation flags
         working-directory: tests/
         run: ./normal_compile.sh
@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Valgrind
-        run: sudo apt install valgrind
+        run: sudo apt-get install -y valgrind
       - name: Run tests with optimized compilation flags
         working-directory: tests/
         run: ./optimized_compile.sh
