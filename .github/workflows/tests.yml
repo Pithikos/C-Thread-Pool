@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install Valgrind
+        run: sudo apt install valgrind
       - name: Run tests with standard compilation flags
         working-directory: tests/
         run: ./normal_compile.sh
@@ -16,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install Valgrind
+        run: sudo apt install valgrind
       - name: Run tests with optimized compilation flags
         working-directory: tests/
         run: ./optimized_compile.sh
