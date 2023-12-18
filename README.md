@@ -1,6 +1,7 @@
 [![GitHub Actions](https://github.com/Pithikos/C-Thread-Pool/workflows/Tests/badge.svg?branch=master)](https://github.com/Pithikos/C-Thread-Pool/actions?query=workflow%3Atests+branch%3Amaster)
 
 
+
 # C Thread Pool
 
 This is a minimal but advanced threadpool implementation.
