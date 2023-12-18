@@ -8,7 +8,16 @@
  *
  ********************************/
 
+#if defined(__APPLE__)
+#include <AvailabilityMacros.h>
+#else
+#ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
+#endif
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 500
+#endif
+#endif
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -18,6 +27,9 @@
 #include <time.h>
 #if defined(__linux__)
 #include <sys/prctl.h>
+#endif
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
+#include <pthread_np.h>
 #endif
 
 #include "thpool.h"
@@ -33,6 +45,13 @@
 #else
 #define err(str)
 #endif
+
+#ifndef THPOOL_THREAD_NAME
+#define THPOOL_THREAD_NAME thpool
+#endif
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
 
 static volatile int threads_on_hold;
 
@@ -203,7 +222,7 @@ void thpool_wait(thpool_* thpool_p){
 
 /* Destroy the threadpool */
 void thpool_destroy(thpool_* thpool_p){
-	/* No need to destory if it's NULL */
+	/* No need to destroy if it's NULL */
 	if (thpool_p == NULL) return ;
 
 	volatile int threads_total = thpool_p->num_threads_alive;
@@ -252,7 +271,7 @@ void thpool_pause(thpool_* thpool_p) {
 /* Resume all threads in threadpool */
 void thpool_resume(thpool_* thpool_p) {
     // resuming a single threadpool hasn't been
-    // implemented yet, meanwhile this supresses
+    // implemented yet, meanwhile this suppresses
     // the warnings
     (void)thpool_p;
 
@@ -280,7 +299,7 @@ int thpool_num_threads_working(thpool_* thpool_p){
 static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 
 	*thread_p = (struct thread*)malloc(sizeof(struct thread));
-	if (thread_p == NULL){
+	if (*thread_p == NULL){
 		err("thread_init(): Could not allocate memory for thread\n");
 		return -1;
 	}
@@ -288,7 +307,7 @@ static int thread_init (thpool_* thpool_p, struct thread** thread_p, int id){
 	(*thread_p)->thpool_p = thpool_p;
 	(*thread_p)->id       = id;
 
-	pthread_create(&(*thread_p)->pthread, NULL, (void *)thread_do, (*thread_p));
+	pthread_create(&(*thread_p)->pthread, NULL, (void * (*)(void *)) thread_do, (*thread_p));
 	pthread_detach((*thread_p)->pthread);
 	return 0;
 }
@@ -306,7 +325,7 @@ static void thread_hold(int sig_id) {
 
 /* What each thread is doing
 *
-* In principle this is an endless loop. The only time this loop gets interuppted is once
+* In principle this is an endless loop. The only time this loop gets interrupted is once
 * thpool_destroy() is invoked or the program exits.
 *
 * @param  thread        thread that will run this function
@@ -314,15 +333,18 @@ static void thread_hold(int sig_id) {
 */
 static void* thread_do(struct thread* thread_p){
 
-	/* Set thread name for profiling and debuging */
-	char thread_name[128] = {0};
-	sprintf(thread_name, "thread-pool-%d", thread_p->id);
+	/* Set thread name for profiling and debugging */
+	char thread_name[16] = {0};
+
+	snprintf(thread_name, 16, TOSTRING(THPOOL_THREAD_NAME) "-%d", thread_p->id);
 
 #if defined(__linux__)
 	/* Use prctl instead to prevent using _GNU_SOURCE flag and implicit declaration */
 	prctl(PR_SET_NAME, thread_name);
 #elif defined(__APPLE__) && defined(__MACH__)
 	pthread_setname_np(thread_name);
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+    pthread_set_name_np(thread_p->pthread, thread_name);
 #else
 	err("thread_do(): pthread_setname_np is not supported on this system");
 #endif
@@ -333,7 +355,7 @@ static void* thread_do(struct thread* thread_p){
 	/* Register signal handler */
 	struct sigaction act;
 	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
+	act.sa_flags = SA_ONSTACK;
 	act.sa_handler = thread_hold;
 	if (sigaction(SIGUSR1, &act, NULL) == -1) {
 		err("thread_do(): cannot handle SIGUSR1");
@@ -454,11 +476,7 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 
 
 /* Get first job from queue(removes it from queue)
-<<<<<<< HEAD
- *
  * Notice: Caller MUST hold a mutex
-=======
->>>>>>> da2c0fe45e43ce0937f272c8cd2704bdc0afb490
  */
 static struct job* jobqueue_pull(jobqueue* jobqueue_p){
 
@@ -516,6 +534,8 @@ static void bsem_init(bsem *bsem_p, int value) {
 
 /* Reset semaphore to 0 */
 static void bsem_reset(bsem *bsem_p) {
+	pthread_mutex_destroy(&(bsem_p->mutex));
+	pthread_cond_destroy(&(bsem_p->cond));
 	bsem_init(bsem_p, 0);
 }
 
