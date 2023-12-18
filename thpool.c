@@ -321,7 +321,7 @@ static void thread_hold(int sig_id) {
 
 /* What each thread is doing
 *
-* In principle this is an endless loop. The only time this loop gets interuppted is once
+* In principle this is an endless loop. The only time this loop gets interrupted is once
 * thpool_destroy() is invoked or the program exits.
 *
 * @param  thread        thread that will run this function
