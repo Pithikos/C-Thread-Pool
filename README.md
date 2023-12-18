@@ -1,4 +1,5 @@
-[[![GitHub Actions](https://github.com/Pithikos/C-Thread-Pool/workflows/tests/badge.svg?branch=master)](https://github.com/api-platform/core/actions?query=workflow%3Atests+branch%3Amaster)
+[![GitHub Actions](https://github.com/Pithikos/C-Thread-Pool/workflows/tests.yml/badge.svg?branch=master)](https://github.com/Pithikos/C-Thread-Pool/actions?query=workflow%3Atests+branch%3Amaster)
+
 
 # C Thread Pool
 
