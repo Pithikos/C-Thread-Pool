@@ -25,6 +25,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <time.h>
+#include <limits.h>
 #if defined(__linux__)
 #include <sys/prctl.h>
 #endif
@@ -554,7 +555,7 @@ static void bsem_post(bsem *bsem_p) {
 /* Post to all threads */
 static void bsem_post_all(bsem *bsem_p) {
 	pthread_mutex_lock(&bsem_p->mutex);
-	bsem_p->v = 1;
+	bsem_p->v = INT_MAX;
 	pthread_cond_broadcast(&bsem_p->cond);
 	pthread_mutex_unlock(&bsem_p->mutex);
 }
@@ -563,9 +564,9 @@ static void bsem_post_all(bsem *bsem_p) {
 /* Wait on semaphore until semaphore has value 0 */
 static void bsem_wait(bsem* bsem_p) {
 	pthread_mutex_lock(&bsem_p->mutex);
-	while (bsem_p->v != 1) {
+	while (bsem_p->v == 0) {
 		pthread_cond_wait(&bsem_p->cond, &bsem_p->mutex);
 	}
-	bsem_p->v = 0;
+	bsem_p->v--;
 	pthread_mutex_unlock(&bsem_p->mutex);
 }
