@@ -53,10 +53,7 @@
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-static volatile int threads_keepalive;
 static volatile int threads_on_hold;
-
-
 
 /* ========================== STRUCTURES ============================ */
 
@@ -100,6 +97,7 @@ typedef struct thpool_{
 	thread**   threads;                  /* pointer to threads        */
 	volatile int num_threads_alive;      /* threads currently alive   */
 	volatile int num_threads_working;    /* threads currently working */
+	volatile int keepalive;              /* keep pool alive           */
 	pthread_mutex_t  thcount_lock;       /* used for thread count etc */
 	pthread_cond_t  threads_all_idle;    /* signal to thpool_wait     */
 	jobqueue  jobqueue;                  /* job queue                 */
@@ -140,7 +138,6 @@ static void  bsem_wait(struct bsem *bsem_p);
 struct thpool_* thpool_init(int num_threads){
 
 	threads_on_hold   = 0;
-	threads_keepalive = 1;
 
 	if (num_threads < 0){
 		num_threads = 0;
@@ -155,6 +152,7 @@ struct thpool_* thpool_init(int num_threads){
 	}
 	thpool_p->num_threads_alive   = 0;
 	thpool_p->num_threads_working = 0;
+	thpool_p->keepalive =1;
 
 	/* Initialise the job queue */
 	if (jobqueue_init(&thpool_p->jobqueue) == -1){
@@ -230,7 +228,7 @@ void thpool_destroy(thpool_* thpool_p){
 	volatile int threads_total = thpool_p->num_threads_alive;
 
 	/* End each thread 's infinite loop */
-	threads_keepalive = 0;
+	thpool_p->keepalive = 0;
 
 	/* Give one second to kill idle threads */
 	double TIMEOUT = 1.0;
@@ -368,11 +366,11 @@ static void* thread_do(struct thread* thread_p){
 	thpool_p->num_threads_alive += 1;
 	pthread_mutex_unlock(&thpool_p->thcount_lock);
 
-	while(threads_keepalive){
+	while(thpool_p->keepalive){
 
 		bsem_wait(thpool_p->jobqueue.has_jobs);
 
-		if (threads_keepalive){
+		if (thpool_p->keepalive){
 
 			pthread_mutex_lock(&thpool_p->thcount_lock);
 			thpool_p->num_threads_working++;
