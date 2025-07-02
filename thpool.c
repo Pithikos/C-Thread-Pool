@@ -142,9 +142,10 @@ struct thpool_* thpool_init(int num_threads){
 	threads_on_hold   = 0;
 	threads_keepalive = 1;
 
-	if (num_threads < 0){
-		num_threads = 0;
-	}
+	if (num_threads <= 0){
+        err("thpool_init(): thread count must be > 0\n");
+        return NULL;
+    }
 
 	/* Make new thread pool */
 	thpool_* thpool_p;
